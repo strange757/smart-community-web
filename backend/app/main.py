@@ -1,9 +1,11 @@
 import uuid
+from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.auth import router as auth_router
@@ -20,7 +22,7 @@ from app.db.session import make_engine, make_session_factory
 from app.models import entities  # noqa: F401
 
 
-def create_app(database_url: str | None = None) -> FastAPI:
+def create_app(database_url: str | None = None, frontend_dist: Path | None = None) -> FastAPI:
     settings = Settings(database_url=database_url) if database_url else Settings()
     engine = make_engine(settings.database_url)
     Base.metadata.create_all(engine)
@@ -78,7 +80,26 @@ def create_app(database_url: str | None = None) -> FastAPI:
     app.include_router(billing_router)
     app.include_router(parking_router)
     app.include_router(dashboard_router)
+
+    if frontend_dist is not None:
+        static_root = frontend_dist.resolve()
+        index_file = static_root / "index.html"
+        if not index_file.is_file():
+            raise RuntimeError(f"frontend/dist build output is missing: {static_root}")
+
+        assets_dir = static_root / "assets"
+        if assets_dir.is_dir():
+            app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+        @app.get("/", include_in_schema=False)
+        @app.get("/{requested_path:path}", include_in_schema=False)
+        async def serve_spa(requested_path: str = ""):
+            if requested_path == "api" or requested_path.startswith("api/"):
+                raise HTTPException(status_code=404, detail="Not Found")
+
+            requested_file = (static_root / requested_path).resolve()
+            if requested_file.is_relative_to(static_root) and requested_file.is_file():
+                return FileResponse(requested_file)
+            return FileResponse(index_file)
+
     return app
-
-
-app = create_app()

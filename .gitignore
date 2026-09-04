@@ -15,4 +15,6 @@ dist/
 playwright-report/
 test-results/
 screenshots/
+!docs/screenshots/
+!docs/screenshots/*.png
 *.log
