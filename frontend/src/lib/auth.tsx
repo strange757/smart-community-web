@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
-import { api, sessionKey } from "@/lib/api"
+import { api, sessionKey, subscribeToUnauthorized } from "@/lib/api"
 import type { CurrentUser, UserSession } from "@/lib/types"
 
 export type AuthStatus = "restoring" | "authenticated" | "anonymous"
@@ -41,6 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [initialSession] = useState(storedSession)
   const [user, setUser] = useState<UserSession | null>(initialSession)
   const [status, setStatus] = useState<AuthStatus>(initialSession ? "restoring" : "anonymous")
+
+  useEffect(() => subscribeToUnauthorized(() => {
+    setUser(null)
+    setStatus("anonymous")
+  }), [])
 
   useEffect(() => {
     if (!initialSession) return

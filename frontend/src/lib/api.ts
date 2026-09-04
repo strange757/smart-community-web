@@ -23,6 +23,18 @@ export class ApiError extends Error {
 
 export const sessionKey = "smart-community-session"
 
+const unauthorizedListeners = new Set<() => void>()
+
+export function subscribeToUnauthorized(listener: () => void): () => void {
+  unauthorizedListeners.add(listener)
+  return () => unauthorizedListeners.delete(listener)
+}
+
+function invalidateSession(): void {
+  sessionStorage.removeItem(sessionKey)
+  unauthorizedListeners.forEach((listener) => listener())
+}
+
 export function currentToken(): string | null {
   const raw = sessionStorage.getItem(sessionKey)
   if (!raw) return null
@@ -52,7 +64,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = payload as ErrorPayload | null
-    if (response.status === 401) sessionStorage.removeItem(sessionKey)
+    if (response.status === 401) invalidateSession()
     throw new ApiError(
       response.status,
       error?.code ?? "REQUEST_FAILED",
