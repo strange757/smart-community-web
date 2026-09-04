@@ -23,6 +23,24 @@ function json(data: unknown) {
   })
 }
 
+function repairFixture(id: number, category: string, status: string): Repair {
+  return {
+    id,
+    communityId: 1,
+    houseId: 1,
+    creatorId: 1,
+    assigneeId: status === "IN_PROGRESS" ? 3 : null,
+    category,
+    description: `${category}的详细描述`,
+    priority: "NORMAL",
+    status,
+    rating: status === "RATED" ? 5 : null,
+    ratingComment: null,
+    createdAt: "2026-09-04T08:00:00Z",
+    events: [],
+  }
+}
+
 describe("property repair workflow", () => {
   afterEach(() => {
     sessionStorage.clear()
@@ -72,5 +90,34 @@ describe("property repair workflow", () => {
 
     expect(await screen.findByText("已指派")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "指派维修人员" })).not.toBeInTheDocument()
+  })
+
+  it("replaces an exact URL status when the user selects broader tabs", async () => {
+    sessionStorage.setItem(sessionKey, JSON.stringify(propertyUser))
+    const inProgress = repairFixture(1, "处理中工单", "IN_PROGRESS")
+    const submitted = repairFixture(2, "待派单工单", "SUBMITTED")
+    const rated = repairFixture(3, "已评价工单", "RATED")
+
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.endsWith("/me")) return Promise.resolve(json(propertyUser))
+      if (path.endsWith("/repairs?status=IN_PROGRESS")) return Promise.resolve(json([inProgress]))
+      if (path.endsWith("/repairs")) return Promise.resolve(json([inProgress, submitted, rated]))
+      throw new Error(`Unexpected request: ${path}`)
+    }))
+
+    renderWithClient(<AuthProvider><RepairsPage /></AuthProvider>, { route: "/app/repairs?status=IN_PROGRESS" })
+
+    expect(await screen.findByRole("button", { name: "查看报修：处理中工单" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "查看报修：待派单工单" })).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "全部" }), { button: 0, ctrlKey: false })
+    expect(await screen.findByRole("button", { name: "查看报修：待派单工单" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "查看报修：已评价工单" })).toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "已完成" }), { button: 0, ctrlKey: false })
+    expect(await screen.findByRole("button", { name: "查看报修：已评价工单" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "查看报修：处理中工单" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "查看报修：待派单工单" })).not.toBeInTheDocument()
   })
 })

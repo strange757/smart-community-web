@@ -20,9 +20,12 @@ const completedStatuses = new Set(["RATED", "CANCELLED"])
 
 export function RepairsPage() {
   const { user } = useAuth()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const exactStatus = searchParams.get("status")
-  const [view, setView] = useState<RepairView>(exactStatus === "IN_PROGRESS" ? "processing" : "all")
+  const requestedView = searchParams.get("view")
+  const view: RepairView = exactStatus
+    ? completedStatuses.has(exactStatus) ? "completed" : processingStatuses.has(exactStatus) ? "processing" : "all"
+    : requestedView === "processing" || requestedView === "completed" ? requestedView : "all"
   const [priority, setPriority] = useState("ALL")
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
@@ -42,11 +45,19 @@ export function RepairsPage() {
   if (!user) return null
   const title = user.role === "MAINTENANCE" ? "我的工单" : "报修工单"
 
+  function changeView(nextView: string) {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete("status")
+    if (nextView === "all") nextParams.delete("view")
+    else nextParams.set("view", nextView)
+    setSearchParams(nextParams, { replace: true })
+  }
+
   return (
     <section className="page-section">
       <PageHeader title={title} description="选择工单查看详情与下一步操作。" action={user.role === "OWNER" ? <Button onClick={() => setCreateOpen(true)}><Plus aria-hidden="true" size={18}/>提交报修</Button> : undefined}/>
       <div className="list-toolbar">
-        <Tabs value={view} onValueChange={(value) => setView(value as RepairView)}><TabsList aria-label="工单状态"><TabsTrigger value="all">全部</TabsTrigger><TabsTrigger value="processing">处理中</TabsTrigger><TabsTrigger value="completed">已完成</TabsTrigger></TabsList></Tabs>
+        <Tabs value={view} onValueChange={changeView}><TabsList aria-label="工单状态"><TabsTrigger value="all">全部</TabsTrigger><TabsTrigger value="processing">处理中</TabsTrigger><TabsTrigger value="completed">已完成</TabsTrigger></TabsList></Tabs>
         <details className="filter-control"><summary><Filter aria-hidden="true" size={17}/>筛选</summary><label>优先级<select className="input" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="ALL">全部</option><option value="NORMAL">普通</option><option value="URGENT">紧急</option></select></label></details>
       </div>
       {repairs.isPending ? <LoadingRows count={3}/> : repairs.isError ? <ErrorState message="工单加载失败" onRetry={() => void repairs.refetch()}/> : filtered.length ? (
