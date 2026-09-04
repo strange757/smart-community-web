@@ -37,7 +37,12 @@ def me(request: Request, user: AppUser = Depends(get_current_user)):
 @router.get("/me/houses")
 def houses(request: Request, user: AppUser = Depends(get_current_user), session: Session = Depends(get_session)):
     rows = session.execute(
-        select(House).join(ResidentHouse, ResidentHouse.house_id == House.id).where(ResidentHouse.user_id == user.id)
+        select(House)
+        .join(ResidentHouse, ResidentHouse.house_id == House.id)
+        .where(
+            ResidentHouse.user_id == user.id,
+            House.community_id == user.community_id,
+        )
     ).scalars().all()
     return envelope(request, [{"id": h.id, "communityId": h.community_id, "building": h.building, "unit": h.unit_name, "roomNo": h.room_no, "area": str(h.area)} for h in rows])
 

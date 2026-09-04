@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
-from app.models.entities import AppUser, RepairEvent, RepairOrder, ResidentHouse
+from app.models.entities import AppUser, House, RepairEvent, RepairOrder, ResidentHouse
 
 ALLOWED = {
     "SUBMITTED": {"ASSIGNED", "CANCELLED"},
@@ -69,7 +69,15 @@ def list_repairs(session: Session, user: AppUser, status: str | None = None) -> 
 
 
 def create_repair(session: Session, user: AppUser, house_id: int, category: str, description: str, priority: str) -> dict:
-    relation = session.scalar(select(ResidentHouse).where(ResidentHouse.user_id == user.id, ResidentHouse.house_id == house_id))
+    relation = session.scalar(
+        select(ResidentHouse)
+        .join(House, ResidentHouse.house_id == House.id)
+        .where(
+            ResidentHouse.user_id == user.id,
+            ResidentHouse.house_id == house_id,
+            House.community_id == user.community_id,
+        )
+    )
     if user.role != "OWNER" or relation is None:
         raise AppError("FORBIDDEN", 403, "只能为自己的房屋提交报修")
     now = datetime.now(UTC)

@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.notices import router as notices_router
@@ -57,6 +58,18 @@ def create_app(database_url: str | None = None) -> FastAPI:
         return JSONResponse(
             status_code=422,
             content={"code": "VALIDATION_ERROR", "message": "请求参数不合法", "requestId": request.state.request_id},
+        )
+
+    @app.exception_handler(StarletteHTTPException)
+    async def framework_http_error(request: Request, exc: StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            headers=exc.headers,
+            content={
+                "code": f"HTTP_{exc.status_code}",
+                "message": str(exc.detail),
+                "requestId": request.state.request_id,
+            },
         )
 
     app.include_router(auth_router)

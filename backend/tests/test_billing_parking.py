@@ -1,6 +1,12 @@
 from datetime import date, timedelta
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier, BrokenBarrierError
 
 import pytest
+from sqlalchemy import event, select
+from sqlalchemy.orm import Session
+
+from app.models.entities import PaymentRecord
 
 from .conftest import login
 
@@ -23,6 +29,46 @@ def test_idempotency_key_cannot_return_another_bill_payment(client):
     replay_for_another_bill = client.post("/api/v1/bills/2/simulate-payment", headers=headers)
     assert replay_for_another_bill.status_code == 409
     assert replay_for_another_bill.json()["code"] == "IDEMPOTENCY_KEY_CONFLICT"
+
+
+@pytest.mark.parametrize("keys", [("same-key", "same-key"), ("first-key", "second-key")])
+def test_concurrent_bill_payments_are_idempotent_or_conflicted_without_duplicates(client, keys):
+    engine = client.app.state.session_factory.kw["bind"]
+    barrier = Barrier(2)
+
+    def synchronize_pending_payment(session):
+        if session.bind is engine and any(isinstance(item, PaymentRecord) for item in session.new):
+            try:
+                barrier.wait(timeout=0.5)
+            except BrokenBarrierError:
+                pass
+
+    event.listen(Session, "before_commit", synchronize_pending_payment)
+    try:
+        headers = login(client, "owner")
+
+        def pay(key):
+            return client.post(
+                "/api/v1/bills/1/simulate-payment",
+                headers={**headers, "Idempotency-Key": key},
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first, second = executor.map(pay, keys)
+    finally:
+        event.remove(Session, "before_commit", synchronize_pending_payment)
+
+    responses = [first, second]
+    with client.app.state.session_factory() as session:
+        payments = session.scalars(select(PaymentRecord).where(PaymentRecord.bill_id == 1)).all()
+
+    assert len(payments) == 1
+    if keys[0] == keys[1]:
+        assert [response.status_code for response in responses] == [200, 200]
+        assert responses[0].json()["data"]["paymentRef"] == responses[1].json()["data"]["paymentRef"]
+    else:
+        assert sorted(response.status_code for response in responses) == [200, 409]
+        assert next(response for response in responses if response.status_code == 409).json()["code"] == "BILL_ALREADY_PAID"
 
 
 @pytest.mark.parametrize("username,path", [("property", "/api/v1/bills"), ("maintenance", "/api/v1/parking/reservations/mine")])

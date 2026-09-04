@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -31,7 +32,12 @@ def pay_bill(session: Session, user: AppUser, bill_id: int, key: str) -> dict:
         raise AppError("FORBIDDEN", 403, "只有业主可以缴费")
     if not key:
         raise AppError("VALIDATION_ERROR", 422, "缺少 Idempotency-Key")
-    bill = session.get(Bill, bill_id)
+
+    # SQLite has no row-level locks, so acquire its writer lock before reading bill state.
+    if session.get_bind().dialect.name == "sqlite":
+        session.execute(text("BEGIN IMMEDIATE"))
+
+    bill = session.scalar(select(Bill).where(Bill.id == bill_id).with_for_update())
     relation = session.scalar(select(ResidentHouse).where(ResidentHouse.user_id == user.id, ResidentHouse.house_id == bill.house_id if bill else False))
     if not bill or bill.community_id != user.community_id or not relation:
         raise AppError("RESOURCE_NOT_FOUND", 404, "账单不存在")
@@ -47,6 +53,17 @@ def pay_bill(session: Session, user: AppUser, bill_id: int, key: str) -> dict:
     bill.status = "PAID"
     bill.paid_at = now
     session.add(payment)
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        previous = session.scalar(
+            select(PaymentRecord).where(PaymentRecord.idempotency_key == key)
+        )
+        if previous:
+            if previous.bill_id != bill_id or previous.payer_id != user.id or previous.community_id != user.community_id:
+                raise AppError("IDEMPOTENCY_KEY_CONFLICT", 409, "幂等键已用于另一笔缴费") from exc
+            return payment_view(previous)
+        raise
     session.refresh(payment)
     return payment_view(payment)
