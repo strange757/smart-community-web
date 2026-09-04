@@ -1,0 +1,30 @@
+[project]
+name = "smart-community-backend"
+version = "0.1.0"
+description = "FastAPI backend for the smart community tablet web app"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "sqlalchemy==2.0.43",
+  "alembic==1.16.5",
+  "pydantic-settings==2.10.1",
+  "pydantic==2.10.6",
+  "anyio==4.8.0",
+  "PyJWT==2.10.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx==0.28.1",
+  "pytest==8.4.1",
+  "pytest-cov==6.2.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["app"]

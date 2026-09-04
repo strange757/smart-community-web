@@ -1,0 +1,1 @@
+"""Smart community backend package."""
