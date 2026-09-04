@@ -11,14 +11,14 @@ The wrappers in `frontend/src/components/ui` were independently implemented for 
 | Package | Installed version | Retained copyright notice |
 |---|---:|---|
 | FastAPI | 0.116.1 | Copyright 2018 Sebastián Ramírez |
-| Pydantic | 2.10.6 | Copyright 2022 Samuel Colvin |
+| Pydantic | 2.10.6 | Copyright 2017-present Pydantic Services Inc. and individual contributors |
 | pydantic-settings | 2.10.1 | Copyright 2022 Samuel Colvin and other contributors |
 | SQLAlchemy | 2.0.43 | Copyright 2005-2025 SQLAlchemy authors and contributors; see upstream `AUTHORS` |
 | Alembic | 1.16.5 | Copyright 2009-2025 Michael Bayer |
 | PyJWT | 2.10.1 | Copyright 2015-2022 José Padilla |
 | AnyIO | 4.8.0 | Copyright 2018 Alex Grönholm |
 | React / React DOM | 19.2.8 / 19.2.8 | Copyright Meta Platforms, Inc. and affiliates |
-| React Router DOM | 7.18.3 | Copyright React Training LLC 2015-2019; Remix Software Inc. 2020-2021 |
+| React Router DOM | 7.18.3 | Copyright React Training LLC 2015-2019; Remix Software Inc. 2020-2021; Shopify Inc. 2022-2023 |
 | TanStack React Query | 5.102.8 | Copyright 2021-present Tanner Linsley |
 | Radix UI React Avatar, Dialog, Dropdown Menu, Slot and Tabs | 1.2.6 / 1.1.23 / 2.1.24 / 1.3.3 / 1.1.21 | Copyright 2022 WorkOS |
 | React Hook Form / resolvers | 7.87.0 / 5.9.1 | Copyright 2019-present Beier (Bill) Luo |
@@ -44,7 +44,7 @@ MIT license text for the packages listed above:
 - Lucide React 0.542.0 is ISC licensed. Copyright for Feather-derived portions is held by Cole Bemis (2013-2023); other Lucide portions are copyright Lucide Contributors (2025). Its installed `LICENSE` retains both the ISC terms and the MIT terms for Feather-derived portions.
 - class-variance-authority 0.7.1 is Apache-2.0 licensed, Copyright 2022 Joe Bell.
 - Playwright 1.62.1 and TypeScript 5.9.3 are Apache-2.0 licensed and retain their upstream notices, including applicable Microsoft and Google notices.
-- Uvicorn 0.35.0 and HTTPX 0.28.1 are BSD-3-Clause licensed.
+- Uvicorn 0.35.0 is BSD-3-Clause licensed, Copyright 2017-present Encode OSS Ltd; HTTPX 0.28.1 is BSD-3-Clause licensed, Copyright 2019 Encode OSS Ltd.
 - Complete license texts and package-specific notices remain in each installed distribution's `LICENSE`, `LICENSE.md`, metadata, or `NOTICE` file and must accompany any redistributed dependency or bundled application where its license requires them.
 
 ## Unsplash asset
