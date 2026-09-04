@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier, BrokenBarrierError
 
@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
-from app.models.entities import PaymentRecord
+from app.models.entities import ParkingReservation, PaymentRecord
 
 from .conftest import login
 
@@ -132,3 +132,54 @@ def test_parking_allows_adjacent_slots_and_rejects_overlap(client):
     )
     assert repeated_cancel.status_code == 409
     assert repeated_cancel.json()["code"] == "RESERVATION_ALREADY_CANCELLED"
+
+
+def test_concurrent_identical_parking_requests_create_one_active_reservation(client):
+    engine = client.app.state.session_factory.kw["bind"]
+    barrier = Barrier(2)
+
+    def synchronize_pending_reservations(session):
+        if session.bind is engine and any(isinstance(item, ParkingReservation) for item in session.new):
+            try:
+                barrier.wait(timeout=0.5)
+            except BrokenBarrierError:
+                pass
+
+    event.listen(Session, "before_commit", synchronize_pending_reservations)
+    try:
+        headers = login(client, "owner")
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        request_body = {
+            "parkingSpaceId": 1,
+            "date": tomorrow,
+            "start": "14:00",
+            "end": "15:00",
+        }
+
+        def reserve():
+            return client.post(
+                "/api/v1/parking/reservations",
+                headers=headers,
+                json=request_body,
+            )
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first, second = executor.map(lambda _: reserve(), range(2))
+    finally:
+        event.remove(Session, "before_commit", synchronize_pending_reservations)
+
+    responses = [first, second]
+    assert sorted(response.status_code for response in responses) == [201, 409]
+    assert next(response for response in responses if response.status_code == 409).json()["code"] == "PARKING_SLOT_CONFLICT"
+
+    with client.app.state.session_factory() as session:
+        active = session.scalars(
+            select(ParkingReservation).where(
+                ParkingReservation.parking_space_id == 1,
+                ParkingReservation.booking_date == date.fromisoformat(tomorrow),
+                ParkingReservation.start_time == time(14, 0),
+                ParkingReservation.end_time == time(15, 0),
+                ParkingReservation.status == "ACTIVE",
+            )
+        ).all()
+    assert len(active) == 1

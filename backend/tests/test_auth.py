@@ -1,3 +1,6 @@
+import pytest
+from sqlalchemy import event
+
 from .conftest import login
 
 
@@ -51,3 +54,19 @@ def test_owner_cannot_list_maintenance_users(client):
     )
     assert response.status_code == 403
     assert response.json()["code"] == "FORBIDDEN"
+
+
+def test_database_lookup_failures_are_not_reported_as_expired_tokens(client):
+    headers = login(client, "owner")
+    engine = client.app.state.session_factory.kw["bind"]
+
+    def fail_user_lookup(_connection, _cursor, statement, _parameters, _context, _executemany):
+        if "FROM app_user" in statement:
+            raise RuntimeError("database lookup unavailable")
+
+    event.listen(engine, "before_cursor_execute", fail_user_lookup)
+    try:
+        with pytest.raises(RuntimeError, match="database lookup unavailable"):
+            client.get("/api/v1/me", headers=headers)
+    finally:
+        event.remove(engine, "before_cursor_execute", fail_user_lookup)

@@ -3,6 +3,7 @@ from enum import StrEnum
 
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
+from jwt.exceptions import PyJWTError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -33,9 +34,10 @@ def get_current_user(
         raise AppError("AUTH_REQUIRED", 401, "请先登录")
     try:
         payload = decode_token(token, request.app.state.settings.jwt_secret)
-        user = session.get(AppUser, int(payload["sub"]))
-    except Exception as exc:
+        user_id = int(payload["sub"])
+    except (PyJWTError, KeyError, TypeError, ValueError) as exc:
         raise AppError("AUTH_EXPIRED", 401, "登录已过期，请重新登录") from exc
+    user = session.get(AppUser, user_id)
     if not user or not user.enabled:
         raise AppError("AUTH_INVALID", 401, "账号不可用")
     return user

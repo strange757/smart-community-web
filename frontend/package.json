@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "test:e2e-runner": "node scripts-tests/run-playwright-cleanup.mjs",
     "e2e": "node e2e/run-playwright.mjs",
     "preview": "vite preview --host 0.0.0.0"
   },

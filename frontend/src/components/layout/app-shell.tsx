@@ -200,7 +200,8 @@ export function AppShell({
             </SheetTrigger>
             <SheetContent aria-describedby="mobile-navigation-description">
               <SheetHeader>
-                <SheetTitle><Brand /></SheetTitle>
+                <Brand />
+                <SheetTitle className="sr-only">和邻智慧社区导航</SheetTitle>
                 <SheetDescription id="mobile-navigation-description" className="sr-only">
                   选择要前往的页面
                 </SheetDescription>

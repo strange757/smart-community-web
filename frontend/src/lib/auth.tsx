@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useQueryClient } from "@tanstack/react-query"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
 import { api, sessionKey, subscribeToUnauthorized } from "@/lib/api"
 import type { CurrentUser, UserSession } from "@/lib/types"
@@ -38,14 +39,21 @@ function storedSession(): UserSession | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [initialSession] = useState(storedSession)
   const [user, setUser] = useState<UserSession | null>(initialSession)
   const [status, setStatus] = useState<AuthStatus>(initialSession ? "restoring" : "anonymous")
 
+  const clearProtectedClientState = useCallback(() => {
+    void queryClient.cancelQueries()
+    queryClient.clear()
+  }, [queryClient])
+
   useEffect(() => subscribeToUnauthorized(() => {
+    clearProtectedClientState()
     setUser(null)
     setStatus("anonymous")
-  }), [])
+  }), [clearProtectedClientState])
 
   useEffect(() => {
     if (!initialSession) return
@@ -54,12 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api.get<CurrentUser>("/me").then((currentUser) => {
       if (!active) return
       const restored = { ...initialSession, ...currentUser }
+      if (
+        restored.id !== initialSession.id
+        || restored.communityId !== initialSession.communityId
+        || restored.role !== initialSession.role
+      ) {
+        clearProtectedClientState()
+      }
       sessionStorage.setItem(sessionKey, JSON.stringify(restored))
       setUser(restored)
       setStatus("authenticated")
     }).catch(() => {
       if (!active) return
       sessionStorage.removeItem(sessionKey)
+      clearProtectedClientState()
       setUser(null)
       setStatus("anonymous")
     })
@@ -67,13 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [initialSession])
+  }, [clearProtectedClientState, initialSession])
 
   const value = useMemo<AuthContextValue>(() => ({
     user,
     status,
     async login(username, password) {
       const next = await api.post<UserSession>("/auth/login", { username, password })
+      clearProtectedClientState()
       sessionStorage.setItem(sessionKey, JSON.stringify(next))
       setUser(next)
       setStatus("authenticated")
@@ -81,10 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     logout() {
       sessionStorage.removeItem(sessionKey)
+      clearProtectedClientState()
       setUser(null)
       setStatus("anonymous")
     },
-  }), [status, user])
+  }), [clearProtectedClientState, status, user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -35,7 +35,11 @@ export function formatDate(value?: string | null): string {
   if (!value) return "暂无时间"
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric" }).format(date)
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Shanghai",
+  }).format(date)
 }
 
 export function formatTime(value: string): string {

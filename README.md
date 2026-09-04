@@ -14,7 +14,7 @@ FastAPI :8000 ---- /api/v1 ---- SQLAlchemy ---- SQLite
 ```
 
 - FastAPI 统一提供 API、OpenAPI 文档和生产 SPA；未知 API 保持 JSON 错误格式，非 API 的 GET 路径回退到 SPA。
-- SQLAlchemy 定义 11 张领域表；Alembic 从空库升级，启动时再执行幂等种子数据。
+- SQLAlchemy 定义 11 张领域表；每张表都有审计时间，社区内父子关系由复合外键约束；Alembic 从空库升级，启动时再执行幂等种子数据。
 - React Router、TanStack Query、Radix UI 与本地 shadcn 风格组件组成平板优先界面。
 - 开发模式使用 Vite 代理；演示模式由一个 FastAPI 进程同时服务前后端。
 
@@ -72,6 +72,8 @@ backend\.venv\Scripts\python.exe backend\run.py
 ```
 
 默认监听 `0.0.0.0:8000`，使用仓库内 `backend/community.db`。打开 `http://127.0.0.1:8000`，API 文档为 `http://127.0.0.1:8000/docs`。若 `frontend/dist` 不存在，命令会明确提示先构建，不会启动空白页面。
+
+首个迁移在正式标签创建前补充了社区复合外键与审计字段。运行过旧预发布版本的演示数据库必须使用下方 `--reset` 重建，不能直接沿用。
 
 需要恢复演示初始状态时，先停止服务器，再执行：
 
@@ -131,3 +133,4 @@ docs/                    部署、演示、测试和 AI 开发记录
 - 车位流程只借鉴 Cal 的渐进式预约概念。
 - Dub 与 Plane 仅用于设计研究，没有复制其 AGPL 或商业源码、品牌素材与文案。
 - 登录页住宅照片的原始链接、Unsplash 许可和本地文件说明记录在 [frontend/public/ASSET_LICENSES.md](frontend/public/ASSET_LICENSES.md)。
+- 已安装依赖、独立实现的 shadcn 风格组件边界及第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

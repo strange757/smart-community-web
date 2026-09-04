@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.core.time_utils import utc_isoformat
 from app.models.entities import AppUser, House, RepairEvent, RepairOrder, ResidentHouse
 
 ALLOWED = {
@@ -25,7 +26,7 @@ def _event_view(event: RepairEvent) -> dict:
         "fromStatus": event.from_status,
         "toStatus": event.to_status,
         "note": event.note,
-        "createdAt": event.created_at,
+        "createdAt": utc_isoformat(event.created_at),
     }
 
 
@@ -43,7 +44,7 @@ def repair_view(session: Session, repair: RepairOrder) -> dict:
         "status": repair.status,
         "rating": repair.rating,
         "ratingComment": repair.rating_comment,
-        "createdAt": repair.created_at,
+        "createdAt": utc_isoformat(repair.created_at),
         "events": [_event_view(event) for event in events],
     }
 
@@ -84,7 +85,7 @@ def create_repair(session: Session, user: AppUser, house_id: int, category: str,
     repair = RepairOrder(community_id=user.community_id, house_id=house_id, creator_id=user.id, category=category, description=description, priority=priority, status="SUBMITTED", created_at=now, updated_at=now)
     session.add(repair)
     session.flush()
-    session.add(RepairEvent(repair_id=repair.id, actor_id=user.id, action="CREATE", from_status=None, to_status="SUBMITTED", note="业主提交报修", created_at=now))
+    session.add(RepairEvent(community_id=user.community_id, repair_id=repair.id, actor_id=user.id, action="CREATE", from_status=None, to_status="SUBMITTED", note="业主提交报修", created_at=now, updated_at=now))
     session.commit()
     return repair_view(session, repair)
 
@@ -95,7 +96,7 @@ def _transition(session: Session, repair: RepairOrder, user: AppUser, to_status:
     previous = repair.status
     repair.status = to_status
     repair.updated_at = datetime.now(UTC)
-    session.add(RepairEvent(repair_id=repair.id, actor_id=user.id, action=action, from_status=previous, to_status=to_status, note=note, created_at=repair.updated_at))
+    session.add(RepairEvent(community_id=repair.community_id, repair_id=repair.id, actor_id=user.id, action=action, from_status=previous, to_status=to_status, note=note, created_at=repair.updated_at, updated_at=repair.updated_at))
 
 
 def assign_repair(session: Session, user: AppUser, repair_id: int, assignee_id: int) -> dict:

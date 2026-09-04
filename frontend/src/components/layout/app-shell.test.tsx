@@ -64,4 +64,27 @@ describe("app shell accessibility", () => {
     expect(screen.getByRole("link", { name: "我的工单" })).not.toHaveAttribute("aria-current")
     expect(screen.getByRole("link", { name: "处理中" })).toHaveAttribute("aria-current", "page")
   })
+
+  it("keeps the mobile navigation brand outside its phrasing heading", async () => {
+    render(
+      <MemoryRouter>
+        <AppShell
+          user={{
+            token: "session-token",
+            expiresInSeconds: 3600,
+            id: 7,
+            displayName: "林女士",
+            role: "OWNER",
+            communityId: 12,
+          }}
+          onLogout={() => undefined}
+        />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "打开导航菜单" }))
+    const heading = await screen.findByRole("heading", { level: 2, name: /和邻/ })
+
+    expect(heading.querySelector(".app-brand")).toBeNull()
+  })
 })

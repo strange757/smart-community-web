@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { LoaderCircle } from "lucide-react"
-import { useState } from "react"
+import { useLayoutEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { EmptyState, ErrorState, LoadingRows } from "@/components/page-kit"
@@ -61,6 +61,22 @@ export function RepairDetailSheet({ repairId, role, onOpenChange }: { repairId: 
     },
   })
 
+  function resetLocalState() {
+    transition.reset()
+    setAssignOpen(false)
+    setCompleteOpen(false)
+    setRatingOpen(false)
+    setCancelOpen(false)
+    setAssigneeId("")
+    setCompletionNote("维修完成")
+    setRating("5")
+    setRatingComment("")
+  }
+
+  useLayoutEffect(() => {
+    resetLocalState()
+  }, [repairId])
+
   const repair = detail.data
   const actions = repair ? repairActionsFor(role, repair.status) : []
 
@@ -73,9 +89,14 @@ export function RepairDetailSheet({ repairId, role, onOpenChange }: { repairId: 
     transition.mutate({ action })
   }
 
+  function handleSheetOpenChange(open: boolean) {
+    if (!open) resetLocalState()
+    onOpenChange(open)
+  }
+
   return (
     <>
-      <Sheet open={repairId !== null} onOpenChange={onOpenChange}>
+      <Sheet open={repairId !== null} onOpenChange={handleSheetOpenChange}>
         <SheetContent className="detail-sheet" aria-describedby="repair-detail-description">
           {detail.isPending ? <LoadingRows count={3} /> : detail.isError ? <ErrorState message={errorMessage(detail.error)} onRetry={() => void detail.refetch()} /> : repair ? (
             <div className="sheet-layout">

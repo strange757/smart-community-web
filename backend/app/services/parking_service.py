@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime, time
 
-from sqlalchemy import and_, select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
@@ -28,7 +28,13 @@ def create_reservation(session: Session, user: AppUser, space_id: int, booking_d
         raise AppError("FORBIDDEN", 403, "只有业主可以预约车位")
     if booking_date < date.today() or end <= start:
         raise AppError("VALIDATION_ERROR", 422, "预约日期或时间不合法")
-    space = session.get(ParkingSpace, space_id)
+    # Serialize the conflict probe with competing writers on SQLite. Databases
+    # with row locks instead protect the stable parking-space parent row.
+    if session.get_bind().dialect.name == "sqlite":
+        session.execute(text("BEGIN IMMEDIATE"))
+    space = session.scalar(
+        select(ParkingSpace).where(ParkingSpace.id == space_id).with_for_update()
+    )
     if not space or space.community_id != user.community_id or not space.enabled:
         raise AppError("RESOURCE_NOT_FOUND", 404, "车位不可用")
     conflict = session.scalar(select(ParkingReservation.id).where(ParkingReservation.community_id == user.community_id, ParkingReservation.parking_space_id == space_id, ParkingReservation.booking_date == booking_date, ParkingReservation.status == "ACTIVE", ParkingReservation.start_time < end, ParkingReservation.end_time > start).limit(1))

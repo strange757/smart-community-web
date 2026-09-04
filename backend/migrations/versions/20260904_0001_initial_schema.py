@@ -23,6 +23,8 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=100), nullable=False),
         sa.Column("address", sa.String(length=255), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_table(
@@ -34,8 +36,11 @@ def upgrade() -> None:
         sa.Column("display_name", sa.String(length=80), nullable=False),
         sa.Column("role", sa.String(length=20), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id", "community_id", name="uq_app_user_id_community"),
         sa.UniqueConstraint("username"),
     )
     op.create_index(op.f("ix_app_user_community_id"), "app_user", ["community_id"], unique=False)
@@ -48,22 +53,30 @@ def upgrade() -> None:
         sa.Column("unit_name", sa.String(length=40), nullable=False),
         sa.Column("room_no", sa.String(length=40), nullable=False),
         sa.Column("area", sa.Numeric(precision=10, scale=2), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("community_id", "building", "unit_name", "room_no"),
+        sa.UniqueConstraint("id", "community_id", name="uq_house_id_community"),
     )
     op.create_index(op.f("ix_house_community_id"), "house", ["community_id"], unique=False)
     op.create_table(
         "resident_house",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("community_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("house_id", sa.Integer(), nullable=False),
         sa.Column("relation_type", sa.String(length=20), nullable=False),
-        sa.ForeignKeyConstraint(["house_id"], ["house.id"]),
-        sa.ForeignKeyConstraint(["user_id"], ["app_user.id"]),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
+        sa.ForeignKeyConstraint(["house_id", "community_id"], ["house.id", "house.community_id"], name="fk_resident_house_house_community"),
+        sa.ForeignKeyConstraint(["user_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_resident_house_user_community"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "house_id"),
     )
+    op.create_index(op.f("ix_resident_house_community_id"), "resident_house", ["community_id"], unique=False)
     op.create_index(op.f("ix_resident_house_house_id"), "resident_house", ["house_id"], unique=False)
     op.create_index(op.f("ix_resident_house_user_id"), "resident_house", ["user_id"], unique=False)
     op.create_table(
@@ -75,9 +88,10 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("publisher_id", sa.Integer(), nullable=False),
         sa.Column("published_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
-        sa.ForeignKeyConstraint(["publisher_id"], ["app_user.id"]),
+        sa.ForeignKeyConstraint(["publisher_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_notice_publisher_community"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_notice_community_id"), "notice", ["community_id"], unique=False)
@@ -95,13 +109,14 @@ def upgrade() -> None:
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("rating", sa.Integer(), nullable=True),
         sa.Column("rating_comment", sa.String(length=200), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["assignee_id"], ["app_user.id"]),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.ForeignKeyConstraint(["assignee_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_repair_order_assignee_community"),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
-        sa.ForeignKeyConstraint(["creator_id"], ["app_user.id"]),
-        sa.ForeignKeyConstraint(["house_id"], ["house.id"]),
+        sa.ForeignKeyConstraint(["creator_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_repair_order_creator_community"),
+        sa.ForeignKeyConstraint(["house_id", "community_id"], ["house.id", "house.community_id"], name="fk_repair_order_house_community"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("id", "community_id", name="uq_repair_order_id_community"),
     )
     op.create_index(op.f("ix_repair_order_community_id"), "repair_order", ["community_id"], unique=False)
     op.create_index(op.f("ix_repair_order_creator_id"), "repair_order", ["creator_id"], unique=False)
@@ -109,17 +124,21 @@ def upgrade() -> None:
     op.create_table(
         "repair_event",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("community_id", sa.Integer(), nullable=False),
         sa.Column("repair_id", sa.Integer(), nullable=False),
         sa.Column("actor_id", sa.Integer(), nullable=False),
         sa.Column("action", sa.String(length=80), nullable=False),
         sa.Column("from_status", sa.String(length=20), nullable=True),
         sa.Column("to_status", sa.String(length=20), nullable=False),
         sa.Column("note", sa.String(length=500), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["actor_id"], ["app_user.id"]),
-        sa.ForeignKeyConstraint(["repair_id"], ["repair_order.id"]),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.ForeignKeyConstraint(["actor_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_repair_event_actor_community"),
+        sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
+        sa.ForeignKeyConstraint(["repair_id", "community_id"], ["repair_order.id", "repair_order.community_id"], name="fk_repair_event_repair_community"),
         sa.PrimaryKeyConstraint("id"),
     )
+    op.create_index(op.f("ix_repair_event_community_id"), "repair_event", ["community_id"], unique=False)
     op.create_index(op.f("ix_repair_event_repair_id"), "repair_event", ["repair_id"], unique=False)
     op.create_table(
         "bill",
@@ -131,10 +150,13 @@ def upgrade() -> None:
         sa.Column("amount", sa.Numeric(precision=12, scale=2), nullable=False),
         sa.Column("status", sa.String(length=20), nullable=False),
         sa.Column("paid_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
-        sa.ForeignKeyConstraint(["house_id"], ["house.id"]),
+        sa.ForeignKeyConstraint(["house_id", "community_id"], ["house.id", "house.community_id"], name="fk_bill_house_community"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("house_id", "bill_type", "period"),
+        sa.UniqueConstraint("id", "community_id", name="uq_bill_id_community"),
     )
     op.create_index(op.f("ix_bill_community_id"), "bill", ["community_id"], unique=False)
     op.create_index(op.f("ix_bill_house_id"), "bill", ["house_id"], unique=False)
@@ -148,9 +170,11 @@ def upgrade() -> None:
         sa.Column("idempotency_key", sa.String(length=120), nullable=False),
         sa.Column("payment_ref", sa.String(length=120), nullable=False),
         sa.Column("paid_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["bill_id"], ["bill.id"]),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.ForeignKeyConstraint(["bill_id", "community_id"], ["bill.id", "bill.community_id"], name="fk_payment_record_bill_community"),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
-        sa.ForeignKeyConstraint(["payer_id"], ["app_user.id"]),
+        sa.ForeignKeyConstraint(["payer_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_payment_record_payer_community"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("idempotency_key"),
         sa.UniqueConstraint("payment_ref"),
@@ -164,9 +188,12 @@ def upgrade() -> None:
         sa.Column("space_no", sa.String(length=40), nullable=False),
         sa.Column("area_name", sa.String(length=80), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("community_id", "space_no"),
+        sa.UniqueConstraint("id", "community_id", name="uq_parking_space_id_community"),
     )
     op.create_index(op.f("ix_parking_space_community_id"), "parking_space", ["community_id"], unique=False)
     op.create_table(
@@ -179,10 +206,11 @@ def upgrade() -> None:
         sa.Column("start_time", sa.Time(), nullable=False),
         sa.Column("end_time", sa.Time(), nullable=False),
         sa.Column("status", sa.String(length=20), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.ForeignKeyConstraint(["community_id"], ["community.id"]),
-        sa.ForeignKeyConstraint(["parking_space_id"], ["parking_space.id"]),
-        sa.ForeignKeyConstraint(["user_id"], ["app_user.id"]),
+        sa.ForeignKeyConstraint(["parking_space_id", "community_id"], ["parking_space.id", "parking_space.community_id"], name="fk_parking_reservation_space_community"),
+        sa.ForeignKeyConstraint(["user_id", "community_id"], ["app_user.id", "app_user.community_id"], name="fk_parking_reservation_user_community"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_parking_reservation_booking_date"), "parking_reservation", ["booking_date"], unique=False)
@@ -208,6 +236,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_bill_community_id"), table_name="bill")
     op.drop_table("bill")
     op.drop_index(op.f("ix_repair_event_repair_id"), table_name="repair_event")
+    op.drop_index(op.f("ix_repair_event_community_id"), table_name="repair_event")
     op.drop_table("repair_event")
     op.drop_index(op.f("ix_repair_order_status"), table_name="repair_order")
     op.drop_index(op.f("ix_repair_order_creator_id"), table_name="repair_order")
@@ -218,6 +247,7 @@ def downgrade() -> None:
     op.drop_table("notice")
     op.drop_index(op.f("ix_resident_house_user_id"), table_name="resident_house")
     op.drop_index(op.f("ix_resident_house_house_id"), table_name="resident_house")
+    op.drop_index(op.f("ix_resident_house_community_id"), table_name="resident_house")
     op.drop_table("resident_house")
     op.drop_index(op.f("ix_house_community_id"), table_name="house")
     op.drop_table("house")

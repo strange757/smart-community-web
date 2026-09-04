@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { AuthProvider } from "@/lib/auth"
+import { AppProviders } from "@/app/providers"
 import { LoginPage } from "./login-page"
 
 function loginResponse(data: unknown, status = 200) {
@@ -16,14 +16,14 @@ function loginResponse(data: unknown, status = 200) {
 
 function renderLogin() {
   return render(
-    <MemoryRouter initialEntries={["/login"]}>
-      <AuthProvider>
+    <AppProviders>
+      <MemoryRouter initialEntries={["/login"]}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/app/operations" element={<p>物业工作台</p>} />
         </Routes>
-      </AuthProvider>
-    </MemoryRouter>,
+      </MemoryRouter>
+    </AppProviders>,
   )
 }
 

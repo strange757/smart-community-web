@@ -1,11 +1,14 @@
 from decimal import Decimal
 
+import pytest
+from sqlalchemy.exc import IntegrityError
+
 from app.models.entities import Community, House, ResidentHouse
 
 from .conftest import login
 
 
-def test_cross_community_house_link_cannot_expose_a_house_or_create_a_repair(client):
+def test_cross_community_house_link_is_rejected_before_it_can_expose_a_house(client):
     with client.app.state.session_factory() as session:
         session.add(Community(id=2, name="第二社区", address="测试路 2 号"))
         session.add(
@@ -18,8 +21,11 @@ def test_cross_community_house_link_cannot_expose_a_house_or_create_a_repair(cli
                 area=Decimal("88.00"),
             )
         )
-        session.add(ResidentHouse(user_id=1, house_id=3, relation_type="OWNER"))
         session.commit()
+        session.add(ResidentHouse(community_id=1, user_id=1, house_id=3, relation_type="OWNER"))
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
 
     headers = login(client, "owner")
     houses = client.get("/api/v1/me/houses", headers=headers)

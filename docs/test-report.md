@@ -30,19 +30,23 @@ GREEN 结果：`8 passed`，无警告。覆盖显式静态托管、SPA 直达、
 
 完整 Vitest 首次纳入 E2E 文件时，41 个单元测试均通过，但套件因 Playwright API 被 Vitest 收集而退出非零；`vite.config.ts` 随后明确排除 `e2e/**`。最终 Vitest 与 Playwright 各自只收集所属测试。
 
+最终审查修复同样遵循 RED/GREEN：并发车位测试先得到两个 `201`；共享 Provider 角色切换测试先显示了上一角色的工单；SQLite 外键、社区复合约束与审计字段测试先失败；API 时间先缺少 UTC 后缀，UTC 环境中的中国日期先显示为 9 月 3 日；报修详情切换/重开测试先保留旧错误和输入；认证数据库故障先被误报为 401；E2E 启动拒绝测试先遗留数据库及 `-shm`/`-wal`。对应聚焦 GREEN 为后端 `10 passed`、前端 `13 passed`，E2E 包装器清理脚本退出码 0。
+
 ## 完整自动化结果
 
 从仓库根目录或注明目录执行：
 
 | 检查 | 命令 | 结果 |
 |---|---|---|
-| 后端 | `backend\.venv\Scripts\python.exe -m pytest backend\tests` | `42 passed in 26.08s` |
-| 前端单元 | `npm --prefix frontend test` | `8 files passed, 41 tests passed` |
+| 后端 | `backend\.venv\Scripts\python.exe -m pytest backend\tests` | `48 passed in 87.64s` |
+| 前端单元 | `npm --prefix frontend test` | `10 files passed, 46 tests passed` |
 | 类型 | `npm --prefix frontend run typecheck` | 退出码 0，无 TypeScript 诊断 |
 | 构建 | `npm --prefix frontend run build` | 退出码 0，1830 modules transformed，无 >500 kB 告警 |
-| E2E | `npm --prefix frontend run e2e` | `1 passed (14.5s)`，Chromium 单 worker；数据库清理检查为 `False` |
+| E2E 包装器 | `npm --prefix frontend run test:e2e-runner` | 启动拒绝路径退出码 0；数据库与两个 sidecar 均被清理 |
+| Alembic | 对全新临时 SQLite 库执行 `upgrade head` 后执行 `check` | `No new upgrade operations detected.` |
+| E2E | `npm --prefix frontend run e2e` | `1 passed (23.0s)`，Chromium 单 worker；数据库及 sidecar 清理检查均为 `False` |
 
-构建前主 JavaScript 为 `537.22 kB`（gzip `168.68 kB`），触发 Vite 告警。启用按 React、UI、Query 和其余依赖划分的 `manualChunks` 后，最大文件为 `react-vendor 286.25 kB`（gzip `91.93 kB`）；其余 JavaScript 为 `98.19/31.38`、`64.30/21.42`、`52.90/13.97`、`35.30/10.40 kB`（原始/gzip）。
+构建前主 JavaScript 为 `537.22 kB`（gzip `168.68 kB`），触发 Vite 告警。启用按 React、UI、Query 和其余依赖划分的 `manualChunks` 后，最大文件为 `react-vendor 286.25 kB`（gzip `91.93 kB`）；最终其余 JavaScript 为 `98.19/31.38`、`64.30/21.42`、`53.28/14.13`、`35.30/10.40 kB`（原始/gzip）。
 
 ## E2E 流程
 
@@ -73,10 +77,12 @@ Playwright 在四个视口逐元素检查横向边界，`document.scrollWidth <=
 - 自动化使用桌面 Chromium 的目标视口，未覆盖所有 HarmonyOS 浏览器版本、系统字体和实体触摸输入差异；交付前仍建议在目标平板做一次同 Wi-Fi 冒烟。
 - 默认 JWT 密钥、HTTP 和 SQLite 只适合演示。公网部署必须更换密钥、启用 HTTPS，并采用更强数据库和备份策略。
 - 模拟缴费不接触真实资金，也未实现支付网关回调、退款或对账。
-- 两个历史轻微项未在本任务扩大修改范围：移动导航的 `SheetTitle` 内含块级品牌内容；报修切换/重开时历史 mutation 错误状态可能短暂保留。正式 E2E 的正常流程未触发二者。
+- 首个 Alembic 迁移在正式标签前补充了审计字段和社区复合外键；运行过旧预发布构建的演示数据库必须使用 `--reset` 重建。
+- PostgreSQL 等数据库走车位父行 `FOR UPDATE` 锁定路径；本 MVP 的自动化环境只对 SQLite `BEGIN IMMEDIATE` 路径做了真实并发验证。
 
 ## 参考与资产核对
 
 - 后端领域参考 MicroCommunity 提交 `45102fc13900aad6d117b00a4feeeafe9c3f5fee`。
 - shadcn/ui 组件模式按 MIT 边界使用；Cal 只提供预约概念；Dub/Plane 只做设计参考，未复制 AGPL 或商业代码。
 - 登录图片来源和 Unsplash 许可记录在 `frontend/public/ASSET_LICENSES.md`。
+- 根目录 `THIRD_PARTY_NOTICES.md` 记录本地独立实现的 shadcn 风格组件边界、直接依赖许可与 Unsplash 资产通知。

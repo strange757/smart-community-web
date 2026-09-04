@@ -6,15 +6,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.core.time_utils import utc_isoformat
 from app.models.entities import AppUser, Bill, PaymentRecord, ResidentHouse
 
 
 def bill_view(bill: Bill) -> dict:
-    return {"id": bill.id, "type": bill.bill_type, "period": bill.period, "amount": f"{bill.amount:.2f}", "status": bill.status, "paidAt": bill.paid_at}
+    return {"id": bill.id, "type": bill.bill_type, "period": bill.period, "amount": f"{bill.amount:.2f}", "status": bill.status, "paidAt": utc_isoformat(bill.paid_at)}
 
 
 def payment_view(payment: PaymentRecord) -> dict:
-    return {"billId": payment.bill_id, "amount": f"{payment.amount:.2f}", "status": "PAID", "paymentRef": payment.payment_ref, "paidAt": payment.paid_at}
+    return {"billId": payment.bill_id, "amount": f"{payment.amount:.2f}", "status": "PAID", "paymentRef": payment.payment_ref, "paidAt": utc_isoformat(payment.paid_at)}
 
 
 def list_bills(session: Session, user: AppUser, status: str | None = None) -> list[dict]:

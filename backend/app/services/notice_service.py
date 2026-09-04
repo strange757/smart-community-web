@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.core.time_utils import utc_isoformat
 from app.models.entities import AppUser, Notice
 
 
@@ -21,7 +22,7 @@ def notice_view(notice: Notice) -> dict:
         "title": notice.title,
         "content": notice.content,
         "status": notice.status,
-        "publishedAt": notice.published_at,
+        "publishedAt": utc_isoformat(notice.published_at),
         "publisherId": notice.publisher_id,
     }
 

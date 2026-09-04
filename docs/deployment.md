@@ -41,6 +41,8 @@ backend\.venv\Scripts\python.exe backend\run.py
 
 入口按仓库位置解析前端和迁移目录，依次执行 Alembic `upgrade head`、幂等种子数据，然后启动 Uvicorn。重复启动不会重复插入种子数据。
 
+> 预发布数据库说明：首个迁移在正式标签创建前补充了社区复合外键和审计时间。若本机曾运行旧的预发布演示库，请先执行下文的 `--reset` 命令重建；旧库不能直接沿用。
+
 需要单独验证默认数据库迁移时，可执行：
 
 ```powershell
@@ -120,10 +122,10 @@ Test-NetConnection 192.168.1.20 -Port 8000
 常见原因：
 
 - `frontend/dist is missing`：运行 `npm --prefix frontend run build`。
-- 8000 端口被占用：停止占用进程，或用 `backend\run.py --port 8002` 启动并访问对应端口。
+- 8000 端口被占用：停止占用进程，或用 `backend\.venv\Scripts\python.exe backend\run.py --port 8002` 启动并访问对应端口。
 - 本机可开、平板不可开：检查防火墙入站规则、Windows 网络是否为“专用”、两台设备是否同一网段。
 - 同一 Wi-Fi 仍不通：关闭 VPN/代理，检查访客网络或路由器的 AP/客户端隔离。
-- 页面旧或数据状态不适合演示：停止服务后运行 `backend\run.py --reset`，并在平板刷新页面。
+- 页面旧、数据库来自预发布版本或数据状态不适合演示：停止服务后运行 `backend\.venv\Scripts\python.exe backend\run.py --reset`，并在平板刷新页面。
 - API 返回 401：退出后重新登录；若仍失败，重置演示库。
 
 ## 7. 正式生产注意事项
