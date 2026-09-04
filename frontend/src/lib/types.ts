@@ -14,32 +14,36 @@ export interface UserSession extends CurrentUser {
 
 export interface Notice {
   id: number
+  communityId: number
   title: string
   content: string
   status: "DRAFT" | "PUBLISHED" | "WITHDRAWN"
-  publishedAt?: string
+  publishedAt: string | null
+  publisherId: number
 }
 
 export interface RepairEvent {
   id: number
+  actorId: number
   action: string
-  fromStatus?: string
+  fromStatus: string | null
   toStatus: string
-  note?: string
+  note: string | null
   createdAt: string
 }
 
 export interface Repair {
   id: number
+  communityId: number
   houseId: number
   creatorId: number
-  assigneeId?: number
+  assigneeId: number | null
   category: string
   description: string
   priority: "NORMAL" | "URGENT"
   status: string
-  rating?: number
-  ratingComment?: string
+  rating: number | null
+  ratingComment: string | null
   createdAt: string
   events: RepairEvent[]
 }
@@ -50,11 +54,19 @@ export interface Bill {
   period: string
   amount: string
   status: "UNPAID" | "PAID"
-  paidAt?: string
+  paidAt: string | null
+}
+
+export interface PaymentResult {
+  billId: number
+  amount: string
+  status: "PAID"
+  paymentRef: string
+  paidAt: string
 }
 
 export interface ParkingSpace { id: number; spaceNo: string; areaName: string; enabled: boolean }
 export interface Reservation { id: number; parkingSpaceId: number; date: string; start: string; end: string; status: "ACTIVE" | "CANCELLED" }
-export interface House { id: number; building: string; unit: string; roomNo: string; area: string }
+export interface House { id: number; communityId: number; building: string; unit: string; roomNo: string; area: string }
 export interface Dashboard { pendingRepairCount: number; completedRepairCount: number; unpaidAmount: string; activeReservationCount: number }
 export interface StaffUser { id: number; displayName: string; role: UserRole }

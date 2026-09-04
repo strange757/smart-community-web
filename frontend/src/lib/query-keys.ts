@@ -1,0 +1,16 @@
+export const queryKeys = {
+  me: ["me"] as const,
+  houses: ["me", "houses"] as const,
+  noticesRoot: ["notices"] as const,
+  notices: (filters: string) => ["notices", filters] as const,
+  repairsRoot: ["repairs"] as const,
+  repairs: (filters: string) => ["repairs", filters] as const,
+  repair: (id: number) => ["repair", id] as const,
+  staff: ["users", "MAINTENANCE"] as const,
+  billsRoot: ["bills"] as const,
+  bills: (filters: string) => ["bills", filters] as const,
+  parkingSpacesRoot: ["parking-spaces"] as const,
+  parkingSpaces: (date: string, start: string, end: string) => ["parking-spaces", date, start, end] as const,
+  parkingReservations: ["parking-reservations", "mine"] as const,
+  dashboard: ["dashboard-summary"] as const,
+}

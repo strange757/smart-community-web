@@ -18,7 +18,7 @@ export const SheetContent = forwardRef<
     <DialogPrimitive.Overlay className="dialog-overlay" />
     <DialogPrimitive.Content ref={ref} className={cn("sheet-content", className)} {...props}>
       {children}
-      <DialogPrimitive.Close className="dialog-close" aria-label="关闭导航菜单">
+      <DialogPrimitive.Close className="dialog-close" aria-label="关闭">
         <X aria-hidden="true" size={18} />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
