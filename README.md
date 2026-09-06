@@ -91,6 +91,10 @@ backend\.venv\Scripts\python.exe backend\run.py --reset
 | 物业 | `property` | `123456` | 运营首页 |
 | 维修 | `maintenance` | `123456` | 我的工单 |
 
+## AI 辅助填写
+
+报修表单提供“AI 整理”，物业公告表单提供“AI 拟稿”。建议可预览、采用或放弃；采用后仍需人工提交。AI 默认关闭，需在 `backend/.env` 配置云端模型服务地址、模型名称和 API Key，再重启后端。接口和配置说明见 [docs/ai-assistance.md](docs/ai-assistance.md)。
+
 ## 测试
 
 ```powershell

@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingRows, PageHeader } from "@/components/pa
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input, Textarea } from "@/components/ui/input"
+import { NoticeDraftAssist } from "@/features/ai/draft-assist"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { errorMessage, formatDate, StatusBadge } from "@/lib/presentation"
@@ -45,7 +46,18 @@ export function NoticesPage() {
       </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent aria-describedby="notice-create-description"><DialogHeader><DialogTitle>新建公告草稿</DialogTitle><DialogDescription id="notice-create-description">草稿创建后可在公告详情中发布。</DialogDescription></DialogHeader><form className="dialog-form" onSubmit={submit}><div className="form-scroll"><label className="field-label">标题<Input value={title} onChange={(event) => setTitle(event.target.value)} minLength={2} maxLength={160} disabled={createNotice.isPending}/></label><label className="field-label">内容<Textarea value={content} onChange={(event) => setContent(event.target.value)} minLength={2} maxLength={4000} disabled={createNotice.isPending}/></label>{createNotice.isError ? <p className="form-error" role="alert">{errorMessage(createNotice.error)}</p> : null}</div><DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button><Button type="submit" disabled={title.trim().length < 2 || content.trim().length < 2 || createNotice.isPending}>{createNotice.isPending ? "正在创建" : "创建草稿"}</Button></DialogFooter></form></DialogContent>
+        <DialogContent aria-describedby="notice-create-description">
+          <DialogHeader><DialogTitle>新建公告草稿</DialogTitle><DialogDescription id="notice-create-description">草稿创建后可在公告详情中发布。</DialogDescription></DialogHeader>
+          <form className="dialog-form" onSubmit={submit}>
+            <div className="form-scroll">
+              <label className="field-label">标题<Input value={title} onChange={(event) => setTitle(event.target.value)} minLength={2} maxLength={160} disabled={createNotice.isPending}/></label>
+              <label className="field-label">内容<Textarea value={content} onChange={(event) => setContent(event.target.value)} minLength={2} maxLength={4000} disabled={createNotice.isPending}/></label>
+              <NoticeDraftAssist title={title} content={content} disabled={createNotice.isPending} onApply={(draft) => { setTitle(draft.title); setContent(draft.content) }} />
+              {createNotice.isError ? <p className="form-error" role="alert">{errorMessage(createNotice.error)}</p> : null}
+            </div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>取消</Button><Button type="submit" disabled={title.trim().length < 2 || content.trim().length < 2 || createNotice.isPending}>{createNotice.isPending ? "正在创建" : "创建草稿"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
     </section>
   )

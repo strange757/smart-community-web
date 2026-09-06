@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.auth import router as auth_router
+from app.api.v1.ai import router as ai_router
 from app.api.v1.notices import router as notices_router
 from app.api.v1.repairs import router as repairs_router
 from app.api.v1.billing import router as billing_router
@@ -75,6 +76,7 @@ def create_app(database_url: str | None = None, frontend_dist: Path | None = Non
         )
 
     app.include_router(auth_router)
+    app.include_router(ai_router)
     app.include_router(notices_router)
     app.include_router(repairs_router)
     app.include_router(billing_router)

@@ -86,3 +86,21 @@ Playwright 在四个视口逐元素检查横向边界，`document.scrollWidth <=
 - shadcn/ui 组件模式按 MIT 边界使用；Cal 只提供预约概念；Dub/Plane 只做设计参考，未复制 AGPL 或商业代码。
 - 登录图片来源和 Unsplash 许可记录在 `frontend/public/ASSET_LICENSES.md`。
 - 根目录 `THIRD_PARTY_NOTICES.md` 记录本地独立实现的 shadcn 风格组件边界、直接依赖许可与 Unsplash 资产通知。
+
+## 2026-09-06：可选 AI 辅助填写
+
+新增业主报修整理和物业公告拟稿，两项操作只返回建议，不创建工单或公告。既有业务测试保留。
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| 后端全量 | 在 backend 执行 `.venv\Scripts\python.exe -m pytest tests` | 99 passed，94.67 秒 |
+| 前端全量 | `npm --prefix frontend test` | 11 个测试文件，51 passed |
+| 类型检查/构建 | `npm --prefix frontend run typecheck` / `npm --prefix frontend run build` | 通过；最大 chunk 286.25 kB |
+| 浏览器流程 | `npm --prefix frontend run e2e` | 3 passed；包括原有三角色业务闭环及两项 AI 页面检查 |
+| 本地服务 | GET `/login`，业主登录，POST `/api/v1/ai/repair-draft` | 页面 200，角色 OWNER；未配置 AI 返回 503 / `AI_NOT_CONFIGURED` |
+
+AI 后端测试只使用受控 HTTP 响应，覆盖角色权限、输入校验、严格 JSON 输出、密钥和上游错误不泄漏、请求内容不自动包含用户身份、每用户限流、配置路径和不写入业务表。总超时回归让响应持续分段抵达，验证仍在总时限到达时返回 504 并关闭响应流。
+
+前端测试覆盖建议预览和人工采用、失败后保留手动输入及重试、编辑原文后丢弃延迟结果、关闭重开不保留旧建议。Playwright 验证 1024/800/390 x 768 的报修建议弹窗及 1024 x 768 的公告拟稿弹窗；人工查看截图确认内容可滚动、底部提交按钮可见、没有横向溢出。测试截图位于忽略目录 `frontend/test-results/playwright-artifacts/`。
+
+成功生成的前端/浏览器测试使用明确标记的接口测试数据，不能代表真实模型质量。尚未配置云端服务地址、模型与 API Key，真实生成、延迟、费用及实体 HarmonyOS 设备验收待接入后完成。配置说明见 [ai-assistance.md](ai-assistance.md)。

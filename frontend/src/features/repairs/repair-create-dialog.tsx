@@ -7,6 +7,7 @@ import { ErrorState, LoadingRows } from "@/components/page-kit"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input, Textarea } from "@/components/ui/input"
+import { RepairDraftAssist } from "@/features/ai/draft-assist"
 import { api } from "@/lib/api"
 import { errorMessage } from "@/lib/presentation"
 import { queryKeys } from "@/lib/query-keys"
@@ -76,6 +77,12 @@ export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOp
                   </select>
                 </label>
                 <label className="field-label">问题描述<Textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={500} disabled={createRepair.isPending} placeholder="例如：楼道感应灯无法点亮" /></label>
+                <RepairDraftAssist description={description} disabled={createRepair.isPending} onApply={(draft) => {
+                  setCategory(draft.category)
+                  setPriority(draft.priority)
+                  setDescription(draft.description)
+                  setValidation("")
+                }} />
               </fieldset>
               {validation ? <p className="form-error" role="alert">{validation}</p> : null}
               {createRepair.isError ? <p className="form-error" role="alert">{errorMessage(createRepair.error)}</p> : null}

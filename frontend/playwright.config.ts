@@ -30,6 +30,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    env: { COMMUNITY_AI_ENABLED: "false" },
     command: `"${python}" "${runner}" --database "${database}" --reset --host 127.0.0.1 --port 8001`,
     url: "http://127.0.0.1:8001/openapi.json",
     reuseExistingServer: false,

@@ -488,6 +488,17 @@ a.sparse-row:hover { background: #fafbf9; }
 .dialog-footer { flex: 0 0 auto; }
 .notice-content { min-height: 120px; overflow-y: auto; }
 .notice-content p { margin: 0 0 18px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-assist { display: grid; gap: 10px; min-width: 0; }
+.ai-assist > .button { justify-self: start; }
+.ai-draft-preview { display: grid; min-width: 0; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.ai-draft-heading { display: flex; align-items: center; gap: 7px; color: var(--primary); font-size: 13px; }
+.ai-draft-body { max-height: 180px; overflow-y: auto; overflow-wrap: anywhere; }
+.ai-draft-body p { margin: 6px 0 0; white-space: pre-wrap; }
+.ai-draft-meta { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted-foreground); font-size: 12px; }
+.ai-missing-info { font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.ai-missing-info summary { min-height: 40px; display: list-item; align-content: center; cursor: pointer; }
+.ai-missing-info ul { margin: 6px 0; padding-left: 20px; }
+.ai-draft-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 
 .sheet-content.detail-sheet { inset: 0 0 0 auto; display: block; width: min(440px, calc(100vw - 24px)); padding: 0; border-radius: 12px 0 0 12px; overflow: hidden; animation: detail-sheet-in 180ms ease-out; }
 .sheet-layout { display: flex; height: 100%; min-height: 0; flex-direction: column; }
