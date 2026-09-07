@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "replace-this-demo-secret-before-production"
     jwt_hours: int = 8
     frontend_dist: Path = Path(__file__).parents[3] / "frontend" / "dist"
+    repair_upload_dir: Path = Path(__file__).resolve().parents[2] / "uploads" / "repairs"
     ai_enabled: bool = False
     ai_base_url: str = ""
     ai_model: str = ""

@@ -47,6 +47,7 @@ MIT license text for the packages listed above:
 - class-variance-authority 0.7.1 is Apache-2.0 licensed, Copyright 2022 Joe Bell.
 - Playwright 1.62.1 and TypeScript 5.9.3 are Apache-2.0 licensed and retain their upstream notices, including applicable Microsoft and Google notices.
 - Uvicorn 0.35.0 is BSD-3-Clause licensed, Copyright 2017-present Encode OSS Ltd; HTTPX 0.28.1 is BSD-3-Clause licensed, Copyright 2019 Encode OSS Ltd.
+- Pillow 12.3.0 is distributed under MIT-CMU; python-multipart 0.0.32 is Apache-2.0 licensed. They provide image validation/normalization and multipart upload parsing. Their installed distributions retain the full license notices.
 - Complete license texts and package-specific notices remain in each installed distribution's `LICENSE`, `LICENSE.md`, metadata, or `NOTICE` file and must accompany any redistributed dependency or bundled application where its license requires them.
 
 ## Unsplash asset

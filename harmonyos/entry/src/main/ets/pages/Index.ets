@@ -14,17 +14,35 @@
  */
 
 import { webview } from '@kit.ArkWeb';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
 
 @Entry
 @Component
 struct Index {
   private controller: webview.WebviewController = new webview.WebviewController();
 
+  private async selectRepairImages(event: OnShowFileSelectorEvent): Promise<void> {
+    const options = new photoAccessHelper.PhotoSelectOptions();
+    options.MIMEType = photoAccessHelper.PhotoViewMIMETypes.IMAGE_TYPE;
+    options.maxSelectNumber = event.fileSelector.getMode() === FileSelectorMode.FileOpenMultipleMode ? 6 : 1;
+    try {
+      const picker = new photoAccessHelper.PhotoViewPicker();
+      const selection = await picker.select(options);
+      event.result.handleFileList(selection.photoUris);
+    } catch {
+      event.result.handleFileList([]);
+    }
+  }
+
   build() {
     Column() {
       Web({ src: 'http://127.0.0.1:8000', controller: this.controller })
         .javaScriptAccess(true)
         .domStorageAccess(true)
+        .onShowFileSelector((event: OnShowFileSelectorEvent) => {
+          this.selectRepairImages(event);
+          return true;
+        })
         .width('100%')
         .height('100%')
     }

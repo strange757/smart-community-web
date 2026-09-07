@@ -9,14 +9,16 @@ COMMUNITY_SCOPED_TABLES = {
     "notice",
     "repair_order",
     "repair_event",
+    "repair_image",
     "bill",
     "payment_record",
     "parking_space",
     "parking_reservation",
+    "demo_data_batch",
 }
 
 
-def test_temporary_database_has_exactly_the_eleven_domain_tables(client):
+def test_temporary_database_has_current_domain_and_demo_metadata_tables(client):
     engine = client.app.state.session_factory.kw["bind"]
     assert set(inspect(engine).get_table_names()) == {
         "community",
@@ -26,10 +28,12 @@ def test_temporary_database_has_exactly_the_eleven_domain_tables(client):
         "notice",
         "repair_order",
         "repair_event",
+        "repair_image",
         "bill",
         "payment_record",
         "parking_space",
         "parking_reservation",
+        "demo_data_batch",
     }
 
 

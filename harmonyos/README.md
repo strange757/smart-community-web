@@ -41,6 +41,8 @@ devecocli build --modules entry --build-mode debug
 
 Web 组件启用 JavaScript 和 DOM 存储。业务代码、AI 调用和数据库均由电脑服务提供；关闭电脑服务后页面不能继续完成业务操作。模拟器重启后应检查端口映射。
 
+报修附件通过 `onShowFileSelector` 对接系统照片选择器，支持一次选择最多6张图片。图片大小和格式由网页及后端校验，具体限制见 [附件说明](../docs/repair-images-update.md)。使用该功能需安装包含选图回调的新构建。
+
 账号为 `owner`、`property`、`maintenance`，密码均为 `123456`。当前容器访问地址位于 `entry/src/main/ets/pages/Index.ets`。修改电脑端口时可让设备 8000 映射到新端口，保持容器地址不变。
 
 ## 模板许可

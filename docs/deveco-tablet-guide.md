@@ -168,6 +168,8 @@ struct Index {
 
 React 需要 JavaScript，登录会话使用 `sessionStorage`，因此显式启用脚本和 DOM 存储。页面从 FastAPI 同源加载，API 相对地址 `/api/v1` 自动指向同一服务，不需要修改 React 的请求地址。
 
+当前交付代码还通过 `onShowFileSelector` 和 `photoAccessHelper.PhotoViewPicker` 接入系统选图器，供报修附件使用。请保留实际 `Index.ets` 中的选图回调；上述代码仅展示网页加载部分。
+
 确认 `entry/src/main/resources/base/profile/main_pages.json` 保留入口：
 
 ```json

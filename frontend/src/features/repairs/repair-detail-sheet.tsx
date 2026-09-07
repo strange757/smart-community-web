@@ -13,6 +13,7 @@ import { errorMessage, formatDate, labelForStatus, StatusBadge } from "@/lib/pre
 import { queryKeys } from "@/lib/query-keys"
 import type { Repair, StaffUser, UserRole } from "@/lib/types"
 import { repairActionsFor, type RepairAction } from "./repair-actions"
+import { RepairImageGallery } from "./repair-images"
 
 const actionLabels: Record<RepairAction, string> = {
   assign: "指派维修人员",
@@ -107,6 +108,7 @@ export function RepairDetailSheet({ repairId, role, onOpenChange }: { repairId: 
               <div className="detail-scroll">
                 <section className="detail-section"><h3>当前状态</h3><div className="detail-meta"><StatusBadge status={repair.status}/>{repair.priority === "URGENT" ? <span className="priority-urgent">紧急</span> : <span>普通</span>}<span>{repair.assigneeId ? `维修人员 #${repair.assigneeId}` : "暂未指派"}</span></div></section>
                 <section className="detail-section"><h3>问题描述</h3><p>{repair.description}</p></section>
+                <RepairImageGallery repairId={repair.id} images={repair.images ?? []}/>
                 <section className="detail-section"><h3>处理记录</h3>
                   {repair.events.length ? <ol className="timeline">{repair.events.map((event) => <li key={event.id}><span className="timeline-dot"/><div><strong>{labelForStatus(event.toStatus)}</strong><p>{event.note || event.action}</p><time>{formatDate(event.createdAt)}</time></div></li>)}</ol> : <EmptyState title="暂无处理记录" />}
                 </section>

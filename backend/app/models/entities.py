@@ -148,6 +148,32 @@ class RepairEvent(TimestampMixin, Base):
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 
+class RepairImage(TimestampMixin, Base):
+    __tablename__ = "repair_image"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["repair_id", "community_id"],
+            ["repair_order.id", "repair_order.community_id"],
+            name="fk_repair_image_repair_community",
+        ),
+        ForeignKeyConstraint(
+            ["uploader_id", "community_id"],
+            ["app_user.id", "app_user.community_id"],
+            name="fk_repair_image_uploader_community",
+        ),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    community_id: Mapped[int] = mapped_column(ForeignKey("community.id"), index=True)
+    repair_id: Mapped[int] = mapped_column(index=True)
+    uploader_id: Mapped[int] = mapped_column()
+    storage_key: Mapped[str] = mapped_column(String(80), unique=True)
+    file_name: Mapped[str] = mapped_column(String(160))
+    content_type: Mapped[str] = mapped_column(String(40))
+    size: Mapped[int] = mapped_column(Integer)
+    width: Mapped[int] = mapped_column(Integer)
+    height: Mapped[int] = mapped_column(Integer)
+
+
 class Bill(TimestampMixin, Base):
     __tablename__ = "bill"
     __table_args__ = (

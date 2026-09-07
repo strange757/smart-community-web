@@ -46,24 +46,17 @@ export function currentToken(): string | null {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function responseFor(path: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers)
-  headers.set("Accept", "application/json")
-  if (init?.body !== undefined) headers.set("Content-Type", "application/json")
+  if (!headers.has("Accept")) headers.set("Accept", "application/json")
+  if (init?.body !== undefined && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json")
   headers.set("X-Request-Id", crypto.randomUUID())
   const token = currentToken()
   if (token) headers.set("Authorization", `Bearer ${token}`)
 
   const response = await fetch(`/api/v1${path}`, { ...init, headers })
-  let payload: Envelope<T> | ErrorPayload | null = null
-  try {
-    payload = await response.json() as Envelope<T> | ErrorPayload
-  } catch {
-    // Some infrastructure errors return an empty or non-JSON body.
-  }
-
   if (!response.ok) {
-    const error = payload as ErrorPayload | null
+    const error = await response.json().catch(() => null) as ErrorPayload | null
     if (response.status === 401) invalidateSession()
     throw new ApiError(
       response.status,
@@ -72,6 +65,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       error?.requestId ?? response.headers.get("X-Request-Id") ?? undefined,
     )
   }
+
+  return response
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await responseFor(path, init)
+  const payload = await response.json().catch(() => null) as Envelope<T> | null
 
   if (!payload || !("data" in payload)) {
     throw new ApiError(
@@ -87,6 +87,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path),
+  blob: async (path: string, signal?: AbortSignal) => (await responseFor(path, { signal, headers: { Accept: "image/jpeg,image/png,image/webp" } })).blob(),
+  upload: <T>(path: string, body: FormData, signal?: AbortSignal) => request<T>(path, { method: "POST", body, signal }),
   post: <T>(path: string, body?: unknown, headers?: HeadersInit, signal?: AbortSignal) => request<T>(path, {
     method: "POST",
     body: body === undefined ? undefined : JSON.stringify(body),

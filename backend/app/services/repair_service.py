@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.core.time_utils import utc_isoformat
-from app.models.entities import AppUser, House, RepairEvent, RepairOrder, ResidentHouse
+from app.models.entities import AppUser, House, RepairEvent, RepairImage, RepairOrder, ResidentHouse
 
 ALLOWED = {
     "SUBMITTED": {"ASSIGNED", "CANCELLED"},
@@ -30,8 +30,23 @@ def _event_view(event: RepairEvent) -> dict:
     }
 
 
-def repair_view(session: Session, repair: RepairOrder) -> dict:
+def _image_view(image: RepairImage) -> dict:
+    return {
+        "id": image.id,
+        "fileName": image.file_name,
+        "contentType": image.content_type,
+        "size": image.size,
+        "width": image.width,
+        "height": image.height,
+        "url": f"/api/v1/repairs/{image.repair_id}/images/{image.id}",
+        "createdAt": utc_isoformat(image.created_at),
+    }
+
+
+def repair_view(session: Session, repair: RepairOrder, images: list[RepairImage] | None = None) -> dict:
     events = session.scalars(select(RepairEvent).where(RepairEvent.repair_id == repair.id).order_by(RepairEvent.created_at, RepairEvent.id)).all()
+    if images is None:
+        images = list(session.scalars(select(RepairImage).where(RepairImage.repair_id == repair.id).order_by(RepairImage.created_at, RepairImage.id)).all())
     return {
         "id": repair.id,
         "communityId": repair.community_id,
@@ -46,6 +61,7 @@ def repair_view(session: Session, repair: RepairOrder) -> dict:
         "ratingComment": repair.rating_comment,
         "createdAt": utc_isoformat(repair.created_at),
         "events": [_event_view(event) for event in events],
+        "images": [_image_view(image) for image in images],
     }
 
 
@@ -66,10 +82,16 @@ def get_repair(session: Session, user: AppUser, repair_id: int) -> RepairOrder:
 
 def list_repairs(session: Session, user: AppUser, status: str | None = None) -> list[dict]:
     rows = session.scalars(select(RepairOrder).where(RepairOrder.community_id == user.community_id).order_by(RepairOrder.created_at.desc())).all()
-    return [repair_view(session, row) for row in rows if _visible(row, user) and (not status or row.status == status)]
+    visible = [row for row in rows if _visible(row, user) and (not status or row.status == status)]
+    images_by_repair: dict[int, list[RepairImage]] = {row.id: [] for row in visible}
+    if visible:
+        images = session.scalars(select(RepairImage).where(RepairImage.repair_id.in_(images_by_repair)).order_by(RepairImage.created_at, RepairImage.id)).all()
+        for image in images:
+            images_by_repair[image.repair_id].append(image)
+    return [repair_view(session, row, images_by_repair[row.id]) for row in visible]
 
 
-def create_repair(session: Session, user: AppUser, house_id: int, category: str, description: str, priority: str) -> dict:
+def validate_repair_house(session: Session, user: AppUser, house_id: int) -> None:
     relation = session.scalar(
         select(ResidentHouse)
         .join(House, ResidentHouse.house_id == House.id)
@@ -81,11 +103,20 @@ def create_repair(session: Session, user: AppUser, house_id: int, category: str,
     )
     if user.role != "OWNER" or relation is None:
         raise AppError("FORBIDDEN", 403, "只能为自己的房屋提交报修")
+
+
+def create_repair_record(session: Session, user: AppUser, house_id: int, category: str, description: str, priority: str) -> RepairOrder:
+    validate_repair_house(session, user, house_id)
     now = datetime.now(UTC)
     repair = RepairOrder(community_id=user.community_id, house_id=house_id, creator_id=user.id, category=category, description=description, priority=priority, status="SUBMITTED", created_at=now, updated_at=now)
     session.add(repair)
     session.flush()
     session.add(RepairEvent(community_id=user.community_id, repair_id=repair.id, actor_id=user.id, action="CREATE", from_status=None, to_status="SUBMITTED", note="业主提交报修", created_at=now, updated_at=now))
+    return repair
+
+
+def create_repair(session: Session, user: AppUser, house_id: int, category: str, description: str, priority: str) -> dict:
+    repair = create_repair_record(session, user, house_id, category, description, priority)
     session.commit()
     return repair_view(session, repair)
 

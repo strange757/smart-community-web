@@ -32,6 +32,17 @@ export interface RepairEvent {
   createdAt: string
 }
 
+export interface RepairImage {
+  id: number
+  fileName: string
+  contentType: string
+  size: number
+  width: number
+  height: number
+  url: string
+  createdAt: string
+}
+
 export interface Repair {
   id: number
   communityId: number
@@ -46,6 +57,7 @@ export interface Repair {
   ratingComment: string | null
   createdAt: string
   events: RepairEvent[]
+  images?: RepairImage[]
 }
 
 export interface Bill {

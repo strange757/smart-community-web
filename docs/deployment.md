@@ -57,13 +57,15 @@ npm --prefix frontend run build
 
 ## 4. 数据恢复
 
-先按 `Ctrl+C` 停止服务。需保留本轮记录时，在服务停止后备份所用数据库及同名 SQLite 附属文件。只在明确要清空独立演示库时运行：
+先按 `Ctrl+C` 停止服务。需保留本轮记录时，在服务停止后同时备份所用数据库、同名 SQLite 附属文件以及 `backend/uploads/repairs` 图片目录（如存在）。自定义 `COMMUNITY_REPAIR_UPLOAD_DIR` 时备份实际目录。只在明确要清空独立演示库时运行：
 
 ```powershell
 .\backend\.venv\Scripts\python.exe demo\run_demo.py --database .\backend\delivery-demo.db --reset
 ```
 
 `--reset` 删除指定 SQLite 文件的全部记录后重建，不删除目录。接受 `.db`、`.sqlite`、`.sqlite3` 扩展名；不写 `--database` 时目标为 `backend/community.db`。启动与重置应始终写出同一数据路径。
+
+`--reset` 不删除上传的图片文件。恢复图片工单需要数据库及图片目录同时恢复，仅保留数据库无法恢复图片内容。
 
 其他版本留下的数据库如与当前表结构不一致，保留原文件，改用新数据库路径运行本次交付版本。
 

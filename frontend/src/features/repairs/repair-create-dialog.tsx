@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { LoaderCircle } from "lucide-react"
-import { useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
 import { ErrorState, LoadingRows } from "@/components/page-kit"
@@ -12,6 +12,7 @@ import { api } from "@/lib/api"
 import { errorMessage } from "@/lib/presentation"
 import { queryKeys } from "@/lib/query-keys"
 import type { House, Repair } from "@/lib/types"
+import { RepairImagePicker } from "./repair-images"
 
 export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const client = useQueryClient()
@@ -21,9 +22,17 @@ export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOp
   const [priority, setPriority] = useState<"NORMAL" | "URGENT">("NORMAL")
   const [description, setDescription] = useState("")
   const [validation, setValidation] = useState("")
+  const [images, setImages] = useState<File[]>([])
 
   const createRepair = useMutation({
-    mutationFn: () => api.post<Repair>("/repairs", { houseId: Number(houseId), category, priority, description: description.trim() }),
+    mutationFn: () => {
+      const body = { houseId: Number(houseId), category, priority, description: description.trim() }
+      if (!images.length) return api.post<Repair>("/repairs", body)
+      const form = new FormData()
+      form.append("data", JSON.stringify(body))
+      images.forEach((image) => form.append("images", image, image.name))
+      return api.upload<Repair>("/repairs/with-images", form)
+    },
     onSuccess: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: queryKeys.repairsRoot }),
@@ -34,10 +43,15 @@ export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOp
       setPriority("NORMAL")
       setDescription("")
       setValidation("")
+      setImages([])
       toast.success("报修已提交")
       onOpenChange(false)
     },
   })
+
+  useEffect(() => {
+    if (!open) { setImages([]); setValidation(""); createRepair.reset() }
+  }, [open])
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -48,7 +62,7 @@ export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOp
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!createRepair.isPending) onOpenChange(next) }}>
       <DialogContent aria-describedby="repair-create-description">
         <DialogHeader>
           <DialogTitle>提交报修</DialogTitle>
@@ -84,6 +98,7 @@ export function RepairCreateDialog({ open, onOpenChange }: { open: boolean; onOp
                   setValidation("")
                 }} />
               </fieldset>
+              <RepairImagePicker files={images} onChange={(files) => { setImages(files); createRepair.reset() }} disabled={createRepair.isPending}/>
               {validation ? <p className="form-error" role="alert">{validation}</p> : null}
               {createRepair.isError ? <p className="form-error" role="alert">{errorMessage(createRepair.error)}</p> : null}
             </div>
