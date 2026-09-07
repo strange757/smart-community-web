@@ -37,6 +37,7 @@ describe("owner home information density", () => {
 
     expect(await screen.findByText("公共设施")).toBeInTheDocument()
     expect(screen.getAllByTestId("home-service")).toHaveLength(3)
+    expect(screen.getByRole("link", { name: "社区助手" })).toHaveAttribute("href", "/app/assistant")
     expect(screen.getAllByTestId("home-active-item")).toHaveLength(1)
     expect(screen.getAllByTestId("home-notice")).toHaveLength(1)
     expect(screen.queryByText("水电维修")).not.toBeInTheDocument()

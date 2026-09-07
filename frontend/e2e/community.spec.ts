@@ -172,35 +172,37 @@ test("production role workflow, conflict recovery, and tablet visuals", async ({
     await page.getByRole("dialog", { name: "缴费完成" }).getByRole("button", { name: "完成" }).click()
   })
 
-  await test.step("owner sees a retained parking conflict and cancels the active reservation", async () => {
+  await test.step("owner selects a mapped space, property approves it, and cancellation releases it", async () => {
     const bookingDate = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)
     await page.getByRole("link", { name: "社区服务" }).click()
     await page.getByRole("link", { name: /车位预约/ }).click()
 
-    async function selectSlot() {
-      await page.getByLabel("预约日期").fill(bookingDate)
-      await page.getByRole("button", { name: "下一步" }).click()
-      await page.getByRole("button", { name: /A-01/ }).click()
-      await page.getByRole("button", { name: "09:00 - 10:00" }).click()
-      await page.getByRole("button", { name: "确认预约" }).click()
-    }
-
-    await selectSlot()
-    await expect(page.getByRole("heading", { name: "预约成功" })).toBeVisible()
+    await page.getByLabel("预约日期").fill(bookingDate)
+    await page.getByLabel("预约时段").selectOption("09:00")
+    await page.getByRole("button", { name: /A-01.*空闲/ }).click()
+    await page.getByRole("button", { name: "提交预约申请" }).click()
+    await expect(page.getByRole("heading", { name: "申请已提交" })).toBeVisible()
     await page.getByRole("button", { name: "继续预约" }).click()
-    await selectSlot()
+    await expect(page.getByRole("button", { name: /A-01.*待审批/ })).toBeDisabled()
 
-    await expect(page.getByRole("alert")).toContainText("该时段已被预约")
-    await expect(page.getByTestId("parking-selection-summary").filter({ hasText: bookingDate })).toBeVisible()
-    await expect(page.getByTestId("parking-selection-summary").filter({ hasText: "A-01" })).toBeVisible()
-    await expect(page.getByRole("button", { name: "09:00 - 10:00" })).toHaveAttribute("aria-pressed", "true")
-
-    await page.getByLabel("我的预约记录").click()
-    await page.getByRole("button", { name: "取消" }).click()
+    await logout(page)
+    await login(page, "property", "运营首页")
+    await page.getByRole("link", { name: "停车管理" }).click()
+    await page.getByRole("button", { name: "通过 A-01 的预约申请" }).click()
+    await page.getByRole("dialog", { name: "通过车位预约" }).getByRole("button", { name: "确认通过" }).click()
+    await expect(page.getByText("暂无待审批预约")).toBeVisible()
+    await logout(page)
+    await login(page, "owner", "今天想做什么？")
+    await page.getByRole("link", { name: "社区服务" }).click()
+    await page.getByRole("link", { name: /车位预约/ }).click()
+    await page.getByLabel("预约日期").fill(bookingDate)
+    await expect(page.getByRole("button", { name: /A-01.*已占用/ })).toBeDisabled()
+    await page.getByRole("button", { name: "取消预约" }).click()
     const cancelDialog = page.getByRole("dialog", { name: "取消车位预约" })
     await cancelDialog.getByRole("button", { name: "确认取消" }).click()
     await expect(cancelDialog).toBeHidden()
     await expect(page.getByText("已取消", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: /A-01.*空闲/ })).toBeEnabled()
   })
 
   const noticeTitle = "E2E 中秋社区开放日"
@@ -257,9 +259,8 @@ test("production role workflow, conflict recovery, and tablet visuals", async ({
     await page.screenshot({ path: resolve(screenshotDirectory, "property-operations-1366x768.png"), fullPage: false })
   })
 
-  expect(consoleErrors).toHaveLength(2)
+  expect(consoleErrors).toHaveLength(1)
   expect(consoleErrors.some((message) => message.includes("status of 503"))).toBe(true)
-  expect(consoleErrors.some((message) => message.includes("status of 409"))).toBe(true)
-  expect(consoleErrors.filter((message) => !/status of (409|503)/.test(message))).toEqual([])
+  expect(consoleErrors.filter((message) => !/status of 503/.test(message))).toEqual([])
   expect(pageErrors).toEqual([])
 })

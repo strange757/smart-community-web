@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import uvicorn
@@ -53,6 +54,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--port", type=int, default=8000, help="Listening port (default: 8000)")
     parser.add_argument("--database", type=Path, default=DEFAULT_DATABASE, help="SQLite database file")
     parser.add_argument("--reset", action="store_true", help="Delete only the selected demo SQLite file before migration")
+    parser.add_argument("--demo-data", action="store_true", help="Add the community-scale synthetic demo batch once, preserving existing records")
     return parser.parse_args()
 
 
@@ -69,6 +71,12 @@ def main() -> None:
         reset_sqlite_database(database_url)
     migrate_database(database_url)
     app = create_app(database_url=database_url, frontend_dist=FRONTEND_DIST)
+    if args.demo_data:
+        from app.db.demo_data import populate_demo_data
+
+        with app.state.session_factory() as session:
+            summary = populate_demo_data(session)
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
     uvicorn.run(app, host=args.host, port=args.port)
 
 

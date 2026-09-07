@@ -11,6 +11,9 @@ export const queryKeys = {
   bills: (filters: string) => ["bills", filters] as const,
   parkingSpacesRoot: ["parking-spaces"] as const,
   parkingSpaces: (date: string, start: string, end: string) => ["parking-spaces", date, start, end] as const,
+  parkingAvailability: (date: string, start: string, end: string) => ["parking-spaces", "availability", date, start, end] as const,
+  parkingReservationsRoot: ["parking-reservations"] as const,
   parkingReservations: ["parking-reservations", "mine"] as const,
+  parkingManagement: ["parking-reservations", "community"] as const,
   dashboard: ["dashboard-summary"] as const,
 }

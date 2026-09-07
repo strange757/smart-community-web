@@ -1,10 +1,14 @@
+from datetime import date, time
 from pathlib import Path
 
+import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import MetaData, Table, create_engine, inspect, select, update
+from sqlalchemy.exc import IntegrityError
 
 from app.db.base import Base
+from app.db.session import configure_sqlite_foreign_keys
 from app.models import entities  # noqa: F401
 
 
@@ -44,6 +48,7 @@ EXPECTED_SCOPED_FOREIGN_KEYS = {
         (("community_id",), "community", ("id",)),
         (("parking_space_id", "community_id"), "parking_space", ("id", "community_id")),
         (("user_id", "community_id"), "app_user", ("id", "community_id")),
+        (("reviewed_by", "community_id"), "app_user", ("id", "community_id")),
     },
 }
 
@@ -146,3 +151,43 @@ def test_alembic_upgrades_an_empty_database_to_the_current_schema(tmp_path: Path
             assert _normalize_default(columns[audit_column]["default"]) == "CURRENT_TIMESTAMP"
 
     command.check(config)
+
+
+def test_parking_approval_migration_preserves_active_history_and_scopes_reviewer(tmp_path: Path):
+    database_url = f"sqlite:///{(tmp_path / 'parking-history.db').as_posix()}"
+    config = Config(str(BACKEND_ROOT / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url)
+    command.upgrade(config, "20260904_0001")
+    engine = create_engine(database_url)
+    configure_sqlite_foreign_keys(engine)
+    metadata = MetaData()
+    community = Table("community", metadata, autoload_with=engine)
+    user = Table("app_user", metadata, autoload_with=engine)
+    space = Table("parking_space", metadata, autoload_with=engine)
+    reservation = Table("parking_reservation", metadata, autoload_with=engine)
+    with engine.begin() as connection:
+        connection.execute(community.insert(), [
+            {"id": 1, "name": "Original", "address": "One"},
+            {"id": 2, "name": "Other", "address": "Two"},
+        ])
+        connection.execute(user.insert(), [
+            {"id": 1, "community_id": 1, "username": "owner", "display_name": "Owner", "password_hash": "hash", "role": "OWNER", "enabled": True},
+            {"id": 2, "community_id": 1, "username": "property", "display_name": "Property", "password_hash": "hash", "role": "PROPERTY", "enabled": True},
+            {"id": 3, "community_id": 2, "username": "other", "display_name": "Other", "password_hash": "hash", "role": "PROPERTY", "enabled": True},
+        ])
+        connection.execute(space.insert(), {"id": 1, "community_id": 1, "space_no": "A-01", "area_name": "A", "enabled": True})
+        connection.execute(reservation.insert(), {"id": 12, "community_id": 1, "user_id": 1, "parking_space_id": 1,
+                                                 "booking_date": date(2030, 1, 1), "start_time": time(9), "end_time": time(10), "status": "ACTIVE"})
+        before = dict(connection.execute(select(reservation)).mappings().one())
+    command.upgrade(config, "head")
+    migrated = Table("parking_reservation", MetaData(), autoload_with=engine)
+    with engine.begin() as connection:
+        after = dict(connection.execute(select(migrated)).mappings().one())
+        assert {key: after[key] for key in before} == before
+        assert {key: after[key] for key in ("plate_number", "review_note", "reviewed_at", "reviewed_by")} == {
+            "plate_number": None, "review_note": None, "reviewed_at": None, "reviewed_by": None,
+        }
+        connection.execute(update(migrated).values(reviewed_by=2))
+    with engine.begin() as connection:
+        with pytest.raises(IntegrityError):
+            connection.execute(update(migrated).values(reviewed_by=3))

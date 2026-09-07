@@ -31,7 +31,7 @@ npm --prefix frontend run build
 .\backend\.venv\Scripts\python.exe demo\run_demo.py --database .\backend\delivery-demo.db
 ```
 
-打开电脑浏览器的 `http://127.0.0.1:8000`，用 `owner / 123456` 登录，再退出。保持服务窗口打开。此命令启用本地离线 AI，无需模型密钥。
+打开电脑浏览器的 `http://127.0.0.1:8000`，用 `owner / 123456` 登录，再退出。保持服务窗口打开。此命令使用已配置模型并补充社区规模数据，模型配置见 [AI 说明](ai-assistance.md)。
 
 需要重演初始状态时，先停止服务，再对同一独立数据库加 `--reset` 启动；该参数会清空所选数据库的全部记录。
 
@@ -187,7 +187,7 @@ React 需要 JavaScript，登录会话使用 `sessionStorage`，因此显式启�
 
 本次 API 26 本地模拟器接受了未签名的调试 HAP，安装返回 `install bundle successfully`，启动返回 `start ability successfully`。这只说明该本地模拟器的调试能力；真机和分发仍按对应环境完成签名。
 
-右侧 Previewer 是布局预览工具，不能代替上述模拟器 Run 与业务网络验收。Web 容器只承载现有系统，数据仍由电脑后端保存；离线 AI 指本地草稿服务，不表示社区后端可以停止。
+右侧 Previewer 是布局预览工具，不能代替上述模拟器 Run 与业务网络验收。Web 容器承载现有系统，数据和模型请求由电脑后端处理，因此社区后端需要保持运行。
 
 ## 7. 现场验收顺序
 
@@ -215,7 +215,7 @@ React 需要 JavaScript，登录会话使用 `sessionStorage`，因此显式启�
 | Web 报明文策略错误 | 依据当前 SDK 的网络策略检查工程配置，或使用有效 HTTPS；不要套用 Android manifest 配置 |
 | 菜单只有图标 | 横屏并最大化；800 至 1023 CSS 像素为紧凑侧栏，低于 800 用左上角导航按钮 |
 | 切角色菜单不可点 | 先点详情右上角 X 关闭模态层 |
-| AI 不可用 | 确认启动的是 `demo/run_demo.py` 且本地 AI 服务正常，或手动填写继续演示 |
+| AI 不可用 | 核对服务端模型配置；草稿可手动填写，智能问答需要配置可用模型 |
 | 页面未更新 | 重新构建前端，刷新或重新运行容器 |
 
 结束后关闭容器或浏览器，在社区启动窗口按 `Ctrl+C`。需要移除映射时，先查看 `fport ls`，仅删除本次规则。保留数据库即可保留演示结果。

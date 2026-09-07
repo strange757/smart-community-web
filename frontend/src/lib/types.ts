@@ -66,7 +66,47 @@ export interface PaymentResult {
 }
 
 export interface ParkingSpace { id: number; spaceNo: string; areaName: string; enabled: boolean }
-export interface Reservation { id: number; parkingSpaceId: number; date: string; start: string; end: string; status: "ACTIVE" | "CANCELLED" }
+export type ParkingAvailabilityStatus = "AVAILABLE" | "PENDING" | "OCCUPIED" | "DISABLED"
+export interface ParkingAvailabilitySpace extends ParkingSpace {
+  availability: ParkingAvailabilityStatus
+  isMine: boolean
+}
+export interface ParkingAvailability { asOf: string; spaces: ParkingAvailabilitySpace[] }
+export type ReservationStatus = "PENDING" | "ACTIVE" | "REJECTED" | "CANCELLED"
+export interface Reservation {
+  id: number
+  parkingSpaceId: number
+  spaceNo: string
+  areaName: string
+  date: string
+  start: string
+  end: string
+  status: ReservationStatus
+  plateNumber: string | null
+  applicantName: string
+  createdAt: string
+  reviewNote: string | null
+  reviewedAt: string | null
+  reviewedBy: number | null
+}
 export interface House { id: number; communityId: number; building: string; unit: string; roomNo: string; area: string }
 export interface Dashboard { pendingRepairCount: number; completedRepairCount: number; unpaidAmount: string; activeReservationCount: number }
 export interface StaffUser { id: number; displayName: string; role: UserRole }
+
+export interface AssistantStatus {
+  enabled: boolean
+  configured: boolean
+  mode: "model" | "mock" | "disabled"
+  model: string | null
+  provider: string | null
+}
+
+export interface AssistantHistoryMessage { role: "user" | "assistant"; content: string }
+
+export interface AssistantReply {
+  answer: string
+  links: { label: string; path: string }[]
+  sources: { label: string; kind: string }[]
+  model: string
+  dataAsOf: string
+}

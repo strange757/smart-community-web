@@ -66,3 +66,7 @@ The generated application icons and resources are retained from the same templat
 ## Design references not copied
 
 MicroCommunity, Cal, Plane and Dub informed domain or interaction research as described in the project documentation. Their source code and brand assets were not copied into this repository.
+
+The parking-space map interaction references the MIT-licensed [jQuery Seat Charts](https://github.com/mateuszmarkowski/jQuery-Seat-Charts) at commit `f43f2a1884c95c3f4fa08ea67d4bc2ccf70aa26b`: spatial selection, availability states, and a status legend. The React implementation is maintained here; no jQuery dependency or Seat Charts source is included.
+
+The top-down vehicle bitmap used by the parking map is from [Kenney Racing Pack](https://kenney.nl/assets/racing-pack), distributed under CC0. Its original license notice is retained at `frontend/public/PARKING_ASSET_LICENSE.txt`; provenance is documented in `frontend/public/ASSET_LICENSES.md`.

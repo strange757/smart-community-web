@@ -3,6 +3,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import {
   Bell,
   Building2,
+  CarFront,
   ChevronDown,
   CircleDot,
   ClipboardList,
@@ -13,6 +14,7 @@ import {
   ListTodo,
   LogOut,
   Menu,
+  MessageSquare,
   Receipt,
   Search,
   UserRound,
@@ -53,6 +55,7 @@ const navigation: Record<UserRole, NavItem[]> = {
   OWNER: [
     { label: "首页", to: "/app/home", icon: Home },
     { label: "社区服务", to: "/app/services", icon: Grid2X2 },
+    { label: "社区助手", to: "/app/assistant", icon: MessageSquare },
     { label: "我的进度", to: "/app/progress", icon: ClipboardList },
     { label: "消息", to: "/app/notices", icon: Bell },
     { label: "我的", to: "/app/profile", icon: UserRound },
@@ -62,6 +65,7 @@ const navigation: Record<UserRole, NavItem[]> = {
     { label: "报修工单", to: "/app/repairs", icon: Wrench },
     { label: "社区公告", to: "/app/notices", icon: FileText },
     { label: "账单管理", to: "/app/billing", icon: Receipt },
+    { label: "停车管理", to: "/app/parking-management", icon: CarFront },
     { label: "我的", to: "/app/profile", icon: UserRound },
   ],
   MAINTENANCE: [

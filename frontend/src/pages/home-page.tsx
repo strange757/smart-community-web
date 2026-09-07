@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
-import { Bell, CarFront, ChevronRight, ReceiptText, Wrench } from "lucide-react"
+import { Bell, CarFront, ChevronRight, MessageSquare, ReceiptText, Wrench } from "lucide-react"
 import { Link } from "react-router-dom"
 
 import { EmptyState, ErrorState, LoadingRows, PageHeader } from "@/components/page-kit"
+import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/lib/presentation"
 import { api } from "@/lib/api"
 import { queryKeys } from "@/lib/query-keys"
@@ -26,7 +27,7 @@ export function HomePage() {
 
   return (
     <section className="page-section home-page">
-      <PageHeader title="今天想做什么？" description="常用社区服务，一步直达。" />
+      <PageHeader title="今天想做什么？" description="常用社区服务，一步直达。" action={<Button asChild variant="ghost"><Link to="/app/assistant"><MessageSquare aria-hidden="true" size={18} />社区助手</Link></Button>} />
       <div className="service-grid">
         {services.slice(0, OWNER_HOME_LIMITS.services).map(({ label, detail, to, icon: Icon }) => (
           <Link className="service-action" to={to} key={to} data-testid="home-service">

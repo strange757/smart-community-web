@@ -25,7 +25,7 @@ def _call(base_url: str, path: str, token: str | None = None, body: Any = None) 
         headers["Authorization"] = f"Bearer {token}"
     request = Request(base_url.rstrip("/") + path, data=data, headers=headers, method="POST" if body is not None else "GET")
     try:
-        with urlopen(request, timeout=5) as response:
+        with urlopen(request, timeout=100 if path.startswith("/api/v1/ai/") else 5) as response:
             raw = response.read()
             status = response.status
     except (HTTPError, URLError, TimeoutError) as error:
@@ -57,7 +57,8 @@ def main() -> int:
         nonlocal failures
         try:
             result = action()
-            print(f"[OK]   {label}{f' — {result}' if result else ''}")
+            display = {key: value for key, value in result.items() if key != "token"} if isinstance(result, dict) else result
+            print(f"[OK]   {label}{f' — {display}' if display else ''}")
             return result
         except DemoCheckError as error:
             failures += 1

@@ -1,13 +1,13 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import select, text
+from sqlalchemy import and_, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.core.time_utils import utc_isoformat
-from app.models.entities import AppUser, Bill, PaymentRecord, ResidentHouse
+from app.models.entities import AppUser, Bill, House, PaymentRecord, ResidentHouse
 
 
 def bill_view(bill: Bill) -> dict:
@@ -21,11 +21,16 @@ def payment_view(payment: PaymentRecord) -> dict:
 def list_bills(session: Session, user: AppUser, status: str | None = None) -> list[dict]:
     if user.role != "OWNER":
         raise AppError("FORBIDDEN", 403, "只有业主可以查看个人账单")
-    house_ids = select(ResidentHouse.house_id).where(ResidentHouse.user_id == user.id)
-    query = select(Bill).where(Bill.community_id == user.community_id, Bill.house_id.in_(house_ids))
+    house_ids = select(ResidentHouse.house_id).where(ResidentHouse.user_id == user.id, ResidentHouse.community_id == user.community_id)
+    query = select(Bill, House).join(
+        House, and_(House.id == Bill.house_id, House.community_id == Bill.community_id)
+    ).where(Bill.community_id == user.community_id, Bill.house_id.in_(house_ids))
     if status:
         query = query.where(Bill.status == status)
-    return [bill_view(item) for item in session.scalars(query.order_by(Bill.status.desc(), Bill.period.desc())).all()]
+    return [
+        {**bill_view(bill), "houseId": house.id, "houseLabel": f"{house.building} {house.unit_name} {house.room_no}"}
+        for bill, house in session.execute(query.order_by(Bill.status.desc(), Bill.period.desc(), Bill.id.desc())).all()
+    ]
 
 
 def pay_bill(session: Session, user: AppUser, bill_id: int, key: str) -> dict:

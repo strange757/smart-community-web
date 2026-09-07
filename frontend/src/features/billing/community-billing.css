@@ -1,0 +1,38 @@
+.community-billing-page { min-width: 0; }
+.community-billing-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.community-billing-summary > div { display: grid; gap: 7px; min-width: 0; padding: 18px 0; }
+.community-billing-summary span, .community-billing-summary small { color: var(--muted-foreground); font-size: 12px; }
+.community-billing-summary strong { font-size: 24px; line-height: 1.3; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.community-billing-summary > div:first-child strong { color: #966926; }
+.community-billing-summary > div:nth-child(2) strong { color: var(--primary); }
+.community-billing-summary > div:nth-child(3) strong { color: #477194; }
+.community-billing-toolbar { display: grid; gap: 16px; margin: 24px 0 20px; }
+.community-billing-filters { display: grid; grid-template-columns: minmax(150px, 190px) minmax(130px, 160px) minmax(160px, 1fr) 40px 40px; align-items: end; gap: 10px; }
+.community-billing-filters > label { display: grid; gap: 7px; min-width: 0; color: var(--muted-foreground); font-size: 12px; }
+.community-billing-filters .input { min-width: 0; width: 100%; }
+.community-billing-table-scroll { max-width: 100%; overflow-x: auto; border-top: 1px solid var(--border); }
+.community-billing-table-scroll[aria-busy="true"] { opacity: .55; }
+.community-billing-table { width: 100%; min-width: 740px; border-collapse: collapse; font-size: 13px; }
+.community-billing-table th { padding: 13px 12px; background: var(--surface-subtle); color: var(--muted-foreground); font-size: 12px; font-weight: 500; text-align: left; white-space: nowrap; }
+.community-billing-table td { padding: 16px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.community-billing-table th:first-child, .community-billing-table td:first-child { padding-left: 6px; }
+.community-billing-table td small { display: block; margin-top: 5px; color: var(--muted-foreground); font-size: 11px; }
+.community-billing-table .community-billing-owner { width: 18%; min-width: 130px; max-width: 240px; overflow-wrap: anywhere; }
+.community-billing-table .community-billing-amount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.billing-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; min-height: 56px; margin-top: 12px; color: var(--muted-foreground); font-size: 12px; }
+.billing-pagination > div { display: flex; align-items: center; gap: 12px; }
+.billing-pagination > div > span { min-width: 84px; text-align: center; font-variant-numeric: tabular-nums; }
+.owner-bills-page .bill-list { border-right: 0; border-left: 0; border-radius: 0; }
+.owner-bills-page .owner-bill-house { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .community-billing-filters { display: flex; flex-wrap: wrap; }
+  .community-billing-filters > label { flex: 1 1 calc(50% - 10px); }
+  .community-billing-filters > .community-billing-search { flex-basis: calc(100% - 100px); }
+  .community-billing-filters > .button { flex: 0 0 40px; }
+}
+@media (max-width: 520px) {
+  .community-billing-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+  .community-billing-summary > div:last-child { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; padding: 0 0 14px; }
+  .community-billing-summary strong { font-size: 20px; }
+  .billing-pagination { align-items: flex-start; }
+}

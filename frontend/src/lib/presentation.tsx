@@ -13,7 +13,9 @@ const statusLabels: Record<string, string> = {
   WITHDRAWN: "已撤回",
   UNPAID: "待缴",
   PAID: "已缴",
-  ACTIVE: "预约中",
+  ACTIVE: "已通过",
+  PENDING: "待审批",
+  REJECTED: "已驳回",
 }
 
 export function labelForStatus(status: string): string {
@@ -21,9 +23,9 @@ export function labelForStatus(status: string): string {
 }
 
 export function StatusBadge({ status }: { status: string }) {
-  const variant = status === "CANCELLED" || status === "WITHDRAWN"
+  const variant = status === "CANCELLED" || status === "WITHDRAWN" || status === "REJECTED"
     ? "danger"
-    : status === "SUBMITTED" || status === "UNPAID" || status === "DRAFT"
+    : status === "SUBMITTED" || status === "UNPAID" || status === "DRAFT" || status === "PENDING"
       ? "warning"
       : status === "ASSIGNED" || status === "IN_PROGRESS"
         ? "info"

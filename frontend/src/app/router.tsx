@@ -6,12 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/lib/auth"
 import { routeForRole } from "@/lib/roles"
 import type { UserRole } from "@/lib/types"
+import { AssistantPage } from "@/pages/assistant-page"
 import { BillsPage } from "@/pages/bills-page"
 import { HomePage } from "@/pages/home-page"
 import { LoginPage } from "@/pages/login-page"
 import { NoticesPage } from "@/pages/notices-page"
 import { OperationsPage } from "@/pages/operations-page"
 import { ParkingPage } from "@/pages/parking-page"
+import { ParkingManagementPage } from "@/pages/parking-management-page"
 import { ProfilePage } from "@/pages/profile-page"
 import { ProgressPage } from "@/pages/progress-page"
 import { RepairsPage } from "@/pages/repairs-page"
@@ -97,11 +99,13 @@ export const appRouter = createBrowserRouter([
           { index: true, element: <RoleIndex /> },
           { path: "home", element: <RolePage roles={["OWNER"]}><HomePage /></RolePage> },
           { path: "services", element: <RolePage roles={["OWNER"]}><ServicesPage /></RolePage> },
+          { path: "assistant", element: <RolePage roles={["OWNER"]}><AssistantPage /></RolePage> },
           { path: "progress", element: <RolePage roles={["OWNER"]}><ProgressPage /></RolePage> },
           { path: "operations", element: <RolePage roles={["PROPERTY"]}><OperationsPage /></RolePage> },
           { path: "repairs", element: <RolePage roles={["OWNER", "PROPERTY"]}><RepairsPage /></RolePage> },
           { path: "bills", element: <RolePage roles={["OWNER"]}><BillsPage /></RolePage> },
           { path: "parking", element: <RolePage roles={["OWNER"]}><ParkingPage /></RolePage> },
+          { path: "parking-management", element: <RolePage roles={["PROPERTY"]}><ParkingManagementPage /></RolePage> },
           { path: "billing", element: <RolePage roles={["PROPERTY"]}><BillsPage /></RolePage> },
           { path: "work-orders", element: <RolePage roles={["MAINTENANCE"]}><RepairsPage /></RolePage> },
           { path: "notices", element: <RolePage roles={["OWNER", "PROPERTY", "MAINTENANCE"]}><NoticesPage /></RolePage> },

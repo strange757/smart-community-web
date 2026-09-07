@@ -32,6 +32,9 @@ def ai_environment(monkeypatch):
         "MODEL": "",
         "API_KEY": "",
         "TIMEOUT_SECONDS": "30",
+        "API_MODE": "chat_completions",
+        "MODE": "model",
+        "REASONING_EFFORT": "low",
     }.items():
         monkeypatch.setenv(f"COMMUNITY_AI_{name}", value)
 

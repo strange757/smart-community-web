@@ -1,6 +1,6 @@
 # 最终交付演示工具
 
-更新日期：2026-09-07。此目录提供启动器、离线 AI 服务和运行检查工具。完整安装见 [部署指南](../docs/deployment.md)，平板运行见 [DevEco Studio 指南](../docs/deveco-tablet-guide.md)。
+更新日期：2026-09-07。此目录提供启动器、本机模型配置导入、可选离线草稿服务和运行检查工具。完整安装见 [部署指南](../docs/deployment.md)，平板运行见 [DevEco Studio 指南](../docs/deveco-tablet-guide.md)。
 
 ## 启动与恢复
 
@@ -12,9 +12,9 @@ npm --prefix frontend run build
 .\backend\.venv\Scripts\python.exe demo\run_demo.py --database .\backend\delivery-demo.db
 ```
 
-打开 `http://127.0.0.1:8000`，保持启动窗口运行。默认附带 `http://127.0.0.1:9100/v1` 离线 AI 模拟服务，无需云端密钥。它根据输入文字做确定性分类与提示，不调用真实大模型。
+打开 `http://127.0.0.1:8000`，保持启动窗口运行。默认使用 `backend/.env` 和环境变量中的模型配置，并幂等补充社区规模演示数据。当前电脑已接入 BuffLink 网关的 `gpt-6-astra`；其他电脑需按 [AI 配置](../docs/ai-assistance.md) 设置。
 
-结束时按 `Ctrl+C` 停止两个服务，数据库保留。下轮需清空专用演示库时，在停止后运行：
+结束时按 `Ctrl+C` 停止启动器，数据库保留。下轮需清空专用演示库时，在停止后运行：
 
 ```powershell
 .\backend\.venv\Scripts\python.exe demo\run_demo.py --database .\backend\delivery-demo.db --reset
@@ -44,8 +44,10 @@ npm --prefix frontend run build
 | `--reset` | 启动前删除并重建所选数据库 |
 | `--host ADDRESS` | 默认 `127.0.0.1`，`0.0.0.0` 接受局域网连接 |
 | `--port 8002` | 更换社区端口，默认 8000 |
-| `--ai-port 9101` | 更换离线 AI 端口，默认 9100 |
-| `--no-mock-ai` | 使用已有环境变量与 `backend/.env`，不启动离线服务 |
+| `--mock-ai` | 显式运行离线草稿模拟服务，智能问答需要真实模型 |
+| `--ai-port 9101` | 使用 `--mock-ai` 时更换模拟端口，默认 9100 |
+| `--no-mock-ai` | 使用现有模型配置，与默认行为一致，保留兼容 |
+| `--minimal-data` | 仅使用原始小型数据，不追加社区规模数据 |
 
 真实模型先按 [AI 配置](../docs/ai-assistance.md) 设置，再运行：
 
@@ -53,7 +55,13 @@ npm --prefix frontend run build
 .\backend\.venv\Scripts\python.exe demo\run_demo.py --database .\backend\delivery-demo.db --no-mock-ai
 ```
 
-默认离线启动只覆盖子进程的 AI 环境变量，不改写 `.env`。`--no-mock-ai` 本身不会启用 AI，仍需有效配置。
+离线模式只覆盖子进程的 AI 环境变量，不改写 `.env`。默认模型模式本身不会生成凭据，仍需有效配置；`configure_local_ai.py` 可将本机已有 API 配置导入服务端。
+
+## 社区规模数据
+
+演示启动器默认向后端传入 `--demo-data`，生成批次只执行一次。包括多栋楼和住户、96 个车位、多种费用、工单状态与事件、停车审批和公告。已有记录、付款及取消结果不会被覆盖。批次标记保存在受迁移管理的 `demo_data_batch` 表。
+
+当前电脑扩充后的数量和验证范围见 [实施记录](../docs/assistant-data-update-plan.md)。`--minimal-data` 不会删除已经生成的数据；要获取独立小型数据，使用新的数据库路径并加此选项。
 
 ## 平板与现场演示
 

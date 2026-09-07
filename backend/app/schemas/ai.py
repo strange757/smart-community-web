@@ -32,3 +32,23 @@ class NoticeDraft(AIModel):
     title: str = Field(min_length=2, max_length=160)
     content: str = Field(min_length=2, max_length=4000)
     missingInfo: list[MissingDetail] = Field(max_length=4)
+
+
+class AssistantMessage(AIModel):
+    role: Literal["user", "assistant"]
+    content: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
+
+
+class AssistantRequest(AIModel):
+    message: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    history: list[AssistantMessage] = Field(default_factory=list, max_length=12)
+
+
+AssistantDestination = Literal["repairs", "bills", "parking", "notices", "progress", "profile"]
+AssistantSource = Literal["guide", "houses", "bills", "repairs", "parking", "notices"]
+
+
+class AssistantDraft(AIModel):
+    answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=8000)]
+    destinations: list[AssistantDestination] = Field(default_factory=list, max_length=4)
+    sources: list[AssistantSource] = Field(default_factory=list, max_length=6)

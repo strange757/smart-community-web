@@ -1,7 +1,7 @@
 from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer, Numeric, String, Text, Time, UniqueConstraint, func
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, ForeignKeyConstraint, Integer, Numeric, String, Text, Time, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -219,6 +219,11 @@ class ParkingReservation(TimestampMixin, Base):
             ["parking_space.id", "parking_space.community_id"],
             name="fk_parking_reservation_space_community",
         ),
+        ForeignKeyConstraint(
+            ["reviewed_by", "community_id"],
+            ["app_user.id", "app_user.community_id"],
+            name="fk_parking_reservation_reviewer_community",
+        ),
     )
     id: Mapped[int] = mapped_column(primary_key=True)
     community_id: Mapped[int] = mapped_column(ForeignKey("community.id"), index=True)
@@ -227,4 +232,15 @@ class ParkingReservation(TimestampMixin, Base):
     booking_date: Mapped[date] = mapped_column(Date, index=True)
     start_time: Mapped[time] = mapped_column(Time)
     end_time: Mapped[time] = mapped_column(Time)
-    status: Mapped[str] = mapped_column(String(20), default="ACTIVE", index=True)
+    status: Mapped[str] = mapped_column(String(20), default="PENDING", index=True)
+    plate_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by: Mapped[int | None] = mapped_column(nullable=True)
+
+
+class DemoDataBatch(TimestampMixin, Base):
+    __tablename__ = "demo_data_batch"
+    community_id: Mapped[int] = mapped_column(ForeignKey("community.id"), primary_key=True)
+    version: Mapped[str] = mapped_column(String(80), primary_key=True)
+    summary: Mapped[dict] = mapped_column(JSON)

@@ -1,57 +1,82 @@
-import { fireEvent, screen } from "@testing-library/react"
+import { act, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { ApiError } from "@/lib/api"
 import { renderWithClient } from "@/test/render"
 import { ParkingPage } from "./parking-page"
 
-function json(data: unknown) {
-  return new Response(JSON.stringify({ data, requestId: "req-parking" }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(status < 400 ? { data, requestId: "parking-test" } : data), {
+    status, headers: { "Content-Type": "application/json" },
   })
 }
 
-describe("parking reservation wizard", () => {
+const spaces = [
+  { id: 1, spaceNo: "A-01", areaName: "A区", enabled: true, availability: "AVAILABLE", isMine: false },
+  { id: 2, spaceNo: "A-02", areaName: "A区", enabled: true, availability: "OCCUPIED", isMine: false },
+  { id: 3, spaceNo: "A-03", areaName: "A区", enabled: true, availability: "PENDING", isMine: false },
+  { id: 4, spaceNo: "A-04", areaName: "A区", enabled: false, availability: "DISABLED", isMine: false },
+]
+
+describe("visual parking reservations", () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it("expands only the current step and keeps prior choices after a 409 conflict", async () => {
+  it("shows unavailable positions and submits a chosen space for property approval", async () => {
+    const submitted: unknown[] = []
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input)
-      if (path.includes("/parking/reservations/mine")) return Promise.resolve(json([]))
-      if (path.includes("/parking/spaces")) return Promise.resolve(json([
-        { id: 1, spaceNo: "A-01", areaName: "A区", enabled: true },
-      ]))
+      if (path.includes("/parking/availability")) return Promise.resolve(json({ asOf: new Date().toISOString(), spaces }))
+      if (path.includes("/reservations/mine")) return Promise.resolve(json([]))
       if (path.endsWith("/parking/reservations") && init?.method === "POST") {
-        return Promise.resolve(new Response(JSON.stringify({
-          code: "PARKING_SLOT_CONFLICT",
-          message: "该时段已被预约",
-          requestId: "req-conflict",
-        }), { status: 409, headers: { "Content-Type": "application/json" } }))
+        const body = JSON.parse(String(init.body))
+        submitted.push(body)
+        return Promise.resolve(json({ id: 9, ...body, spaceNo: "A-01", areaName: "A区", status: "PENDING", applicantName: "张三", reviewNote: null, reviewedAt: null, reviewedBy: null, createdAt: new Date().toISOString() }, 201))
       }
-      throw new ApiError(500, "UNEXPECTED_REQUEST", path)
+      throw new Error(`Unexpected request: ${path}`)
     }))
-
     renderWithClient(<ParkingPage />)
 
-    expect(screen.getByRole("heading", { name: "选择日期" })).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "选择车位" })).not.toBeInTheDocument()
+    const map = await screen.findByRole("group", { name: "A区车位图" })
+    expect(within(map).getByRole("button", { name: /A-02.*已占用/ })).toBeDisabled()
+    expect(within(map).getByRole("button", { name: /A-03.*待审批/ })).toBeDisabled()
+    expect(within(map).getByRole("button", { name: /A-04.*已停用/ })).toBeDisabled()
+    fireEvent.click(within(map).getByRole("button", { name: /A-01.*空闲/ }))
+    fireEvent.change(screen.getByLabelText("车牌号（选填）"), { target: { value: "京A12345" } })
+    fireEvent.click(screen.getByRole("button", { name: "提交预约申请" }))
+
+    expect(await screen.findByRole("heading", { name: "申请已提交" })).toBeInTheDocument()
+    expect(submitted).toHaveLength(1)
+    expect(submitted[0]).toMatchObject({ parkingSpaceId: 1, plateNumber: "京A12345", start: "09:00", end: "10:00" })
+  })
+
+  it("invalidates a selected position when refreshed occupancy changes", async () => {
+    let occupied = false
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL) => Promise.resolve(json(
+      String(input).includes("/availability")
+        ? { asOf: new Date().toISOString(), spaces: [{ ...spaces[0], availability: occupied ? "OCCUPIED" : "AVAILABLE" }] }
+        : [],
+    ))))
+    renderWithClient(<ParkingPage />)
+    fireEvent.click(await screen.findByRole("button", { name: /A-01.*空闲/ }))
+    expect(screen.getByRole("button", { name: "提交预约申请" })).toBeEnabled()
+    occupied = true
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "刷新车位状态" })) })
+    expect(await screen.findByRole("button", { name: /A-01.*已占用/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "提交预约申请" })).toBeDisabled()
+    expect(screen.getByRole("alert")).toHaveTextContent("A-01")
+  })
+
+  it("retains date and time after a server-side reservation conflict", async () => {
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "POST") return Promise.resolve(json({ code: "PARKING_SLOT_CONFLICT", message: "该时段已被预约" }, 409))
+      return Promise.resolve(json(String(input).includes("/availability") ? { asOf: new Date().toISOString(), spaces } : []))
+    }))
+    renderWithClient(<ParkingPage />)
     fireEvent.change(screen.getByLabelText("预约日期"), { target: { value: "2099-09-05" } })
-    fireEvent.click(screen.getByRole("button", { name: "下一步" }))
-
-    expect(await screen.findByRole("heading", { name: "选择车位" })).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "选择时段" })).not.toBeInTheDocument()
-    fireEvent.click(await screen.findByRole("button", { name: /A-01/ }))
-    expect(screen.getByRole("heading", { name: "选择时段" })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "09:00 - 10:00" }))
-
-    expect(screen.getByRole("heading", { name: "确认预约" })).toBeInTheDocument()
-    expect(screen.getAllByTestId("parking-selection-summary")).toHaveLength(3)
-    fireEvent.click(screen.getByRole("button", { name: "确认预约" }))
-
+    fireEvent.change(screen.getByLabelText("预约时段"), { target: { value: "14:00" } })
+    fireEvent.click(await screen.findByRole("button", { name: /A-01.*空闲/ }))
+    fireEvent.click(screen.getByRole("button", { name: "提交预约申请" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("该时段已被预约")
-    expect(screen.getByRole("heading", { name: "选择时段" })).toBeInTheDocument()
-    expect(screen.getByText("2099-09-05")).toBeInTheDocument()
-    expect(screen.getByText("A区 · A-01")).toBeInTheDocument()
+    expect(screen.getByLabelText("预约日期")).toHaveValue("2099-09-05")
+    expect(screen.getByLabelText("预约时段")).toHaveValue("14:00")
   })
 })

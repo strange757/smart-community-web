@@ -6,11 +6,11 @@ import { AppShell, navForRole } from "./app-shell"
 
 describe("role navigation", () => {
   it("keeps the owner navigation focused on daily services", () => {
-    expect(navForRole("OWNER")).toEqual(["首页", "社区服务", "我的进度", "消息", "我的"])
+    expect(navForRole("OWNER")).toEqual(["首页", "社区服务", "社区助手", "我的进度", "消息", "我的"])
   })
 
   it("gives property staff an operations workspace", () => {
-    expect(navForRole("PROPERTY")).toEqual(["运营首页", "报修工单", "社区公告", "账单管理", "我的"])
+    expect(navForRole("PROPERTY")).toEqual(["运营首页", "报修工单", "社区公告", "账单管理", "停车管理", "我的"])
   })
 
   it("shows maintenance staff only the work they need", () => {

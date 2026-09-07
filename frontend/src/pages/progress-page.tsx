@@ -3,13 +3,14 @@ import { useQuery } from "@tanstack/react-query"
 import { EmptyState, ErrorState, LoadingRows, PageHeader } from "@/components/page-kit"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api } from "@/lib/api"
+import { PARKING_REFRESH_MS } from "@/features/parking/parking-data"
 import { formatDate, formatTime, StatusBadge } from "@/lib/presentation"
 import { queryKeys } from "@/lib/query-keys"
 import type { Repair, Reservation } from "@/lib/types"
 
 export function ProgressPage() {
   const repairs = useQuery({ queryKey: queryKeys.repairs("owner-progress"), queryFn: () => api.get<Repair[]>("/repairs") })
-  const reservations = useQuery({ queryKey: queryKeys.parkingReservations, queryFn: () => api.get<Reservation[]>("/parking/reservations/mine") })
+  const reservations = useQuery({ queryKey: queryKeys.parkingReservations, queryFn: () => api.get<Reservation[]>("/parking/reservations/mine"), refetchInterval: PARKING_REFRESH_MS })
 
   return (
     <section className="page-section">
@@ -23,7 +24,7 @@ export function ProgressPage() {
         </TabsContent>
         <TabsContent value="parking">
           {reservations.isPending ? <LoadingRows /> : reservations.isError ? <ErrorState message="预约记录加载失败" onRetry={() => void reservations.refetch()} /> : reservations.data?.length ? (
-            <div className="sparse-list">{reservations.data.map((item) => <div className="sparse-row" key={item.id}><span className="row-copy"><strong>{item.date}</strong><small>{formatTime(item.start)} - {formatTime(item.end)}</small></span><StatusBadge status={item.status} /></div>)}</div>
+            <div className="sparse-list">{reservations.data.map((item) => <div className="sparse-row" key={item.id}><span className="row-copy"><strong>{item.spaceNo} · {item.date}</strong><small>{formatTime(item.start)} - {formatTime(item.end)}{item.reviewNote ? ` · ${item.reviewNote}` : ""}</small></span><StatusBadge status={item.status} /></div>)}</div>
           ) : <EmptyState title="暂无车位预约" />}
         </TabsContent>
       </Tabs>

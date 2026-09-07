@@ -134,7 +134,7 @@ def test_parking_allows_adjacent_slots_and_rejects_overlap(client):
     assert repeated_cancel.json()["code"] == "RESERVATION_ALREADY_CANCELLED"
 
 
-def test_concurrent_identical_parking_requests_create_one_active_reservation(client):
+def test_concurrent_identical_parking_requests_create_one_pending_reservation(client):
     engine = client.app.state.session_factory.kw["bind"]
     barrier = Barrier(2)
 
@@ -179,7 +179,7 @@ def test_concurrent_identical_parking_requests_create_one_active_reservation(cli
                 ParkingReservation.booking_date == date.fromisoformat(tomorrow),
                 ParkingReservation.start_time == time(14, 0),
                 ParkingReservation.end_time == time(15, 0),
-                ParkingReservation.status == "ACTIVE",
+                ParkingReservation.status == "PENDING",
             )
         ).all()
     assert len(active) == 1

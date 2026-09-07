@@ -1,0 +1,14 @@
+.repair-list-toolbar { flex-wrap: wrap; }
+.repair-list-search { position: relative; flex: 1 1 230px; min-width: 0; max-width: 380px; margin-left: auto; }
+.repair-list-search > svg { position: absolute; top: 12px; left: 11px; color: var(--muted-foreground); pointer-events: none; }
+.repair-list-search .input { width: 100%; min-width: 0; padding-left: 34px; }
+.repair-management-page .repair-list { border-right: 0; border-left: 0; border-radius: 0; }
+.repair-management-page .repair-row .row-copy { flex: 1 1 0; }
+.repair-management-page .repair-row-description { color: var(--foreground); font-weight: 400; }
+.repair-list-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; min-height: 56px; margin-top: 12px; color: var(--muted-foreground); font-size: 12px; }
+.repair-list-pagination > div { display: flex; align-items: center; gap: 12px; }
+.repair-list-pagination > div > span { min-width: 84px; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .repair-list-search { order: 3; flex-basis: 100%; max-width: none; }
+  .repair-management-page .repair-row .row-copy { flex-basis: 100%; }
+}

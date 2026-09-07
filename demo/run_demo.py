@@ -48,14 +48,17 @@ def _probe_host(host: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="启动和邻智慧社区演示（默认同时启动离线 AI 模拟服务）"
+        description="启动和邻智慧社区（默认使用已配置模型和社区规模演示数据）"
     )
     parser.add_argument("--host", default="127.0.0.1", help="社区应用监听地址")
     parser.add_argument("--port", type=int, default=8000, help="社区应用端口")
     parser.add_argument("--ai-port", type=int, default=9100, help="离线 AI 模拟服务端口")
     parser.add_argument("--database", type=Path, help="演示 SQLite 文件路径")
     parser.add_argument("--reset", action="store_true", help="启动前重建指定的演示数据库")
-    parser.add_argument("--no-mock-ai", action="store_true", help="不启动离线 AI 模拟服务，使用已有配置")
+    ai_mode = parser.add_mutually_exclusive_group()
+    ai_mode.add_argument("--mock-ai", action="store_true", help="显式使用离线草稿模拟服务")
+    ai_mode.add_argument("--no-mock-ai", action="store_true", help="使用已有模型配置（默认行为，保留兼容）")
+    parser.add_argument("--minimal-data", action="store_true", help="仅使用原始小型演示数据，不补充社区规模数据")
     args = parser.parse_args()
 
     index_file = ROOT / "frontend" / "dist" / "index.html"
@@ -72,12 +75,14 @@ def main() -> int:
         backend_command.extend(["--database", str(args.database)])
     if args.reset:
         backend_command.append("--reset")
+    if not args.minimal_data:
+        backend_command.append("--demo-data")
 
     mock_process: subprocess.Popen[bytes] | None = None
     backend_process: subprocess.Popen[bytes] | None = None
     environment = os.environ.copy()
     try:
-        if not args.no_mock_ai:
+        if args.mock_ai:
             mock_process = subprocess.Popen(
                 [sys.executable, str(Path(__file__).with_name("mock_ai_server.py")), "--host", "127.0.0.1", "--port", str(args.ai_port)],
                 cwd=ROOT,
@@ -89,17 +94,22 @@ def main() -> int:
                     "COMMUNITY_AI_BASE_URL": f"http://127.0.0.1:{args.ai_port}/v1",
                     "COMMUNITY_AI_MODEL": "demo-model",
                     "COMMUNITY_AI_API_KEY": "",
+                    "COMMUNITY_AI_API_MODE": "chat_completions",
+                    "COMMUNITY_AI_MODE": "mock",
+                    "COMMUNITY_AI_PROVIDER_NAME": "离线草稿模拟服务",
                 }
             )
 
         backend_process = subprocess.Popen(backend_command, cwd=ROOT, env=environment)
         probe_host = _probe_host(args.host)
-        _wait_for(f"http://{probe_host}:{args.port}/docs", backend_process)
+        _wait_for(f"http://{probe_host}:{args.port}/docs", backend_process, timeout=120)
         print("\n和邻智慧社区演示已启动：", flush=True)
         print(f"  应用：   http://{probe_host}:{args.port}", flush=True)
         print(f"  API 文档：http://{probe_host}:{args.port}/docs", flush=True)
-        if not args.no_mock_ai:
+        if args.mock_ai:
             print(f"  AI 模拟： http://127.0.0.1:{args.ai_port}/v1", flush=True)
+        else:
+            print("  AI：按 backend/.env 和环境变量使用模型服务", flush=True)
         print("  账号：   owner / property / maintenance（密码均为 123456）", flush=True)
         print("\n按 Ctrl+C 停止演示。", flush=True)
         while backend_process.poll() is None:

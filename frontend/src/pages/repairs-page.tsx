@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
-import { Filter, Plus } from "lucide-react"
-import { useMemo, useState } from "react"
+import { ChevronLeft, ChevronRight, Filter, Plus, Search } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 
 import { EmptyState, ErrorState, LoadingRows, PageHeader } from "@/components/page-kit"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RepairCreateDialog } from "@/features/repairs/repair-create-dialog"
 import { RepairDetailSheet } from "@/features/repairs/repair-detail-sheet"
@@ -13,10 +14,12 @@ import { useAuth } from "@/lib/auth"
 import { formatDate, StatusBadge } from "@/lib/presentation"
 import { queryKeys } from "@/lib/query-keys"
 import type { Repair } from "@/lib/types"
+import "@/features/repairs/repair-list.css"
 
 type RepairView = "all" | "processing" | "completed"
 const processingStatuses = new Set(["SUBMITTED", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED"])
 const completedStatuses = new Set(["RATED", "CANCELLED"])
+const pageSize = 20
 
 export function RepairsPage() {
   const { user } = useAuth()
@@ -27,6 +30,8 @@ export function RepairsPage() {
     ? completedStatuses.has(exactStatus) ? "completed" : processingStatuses.has(exactStatus) ? "processing" : "all"
     : requestedView === "processing" || requestedView === "completed" ? requestedView : "all"
   const [priority, setPriority] = useState("ALL")
+  const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const repairs = useQuery({
@@ -36,11 +41,17 @@ export function RepairsPage() {
   })
   const filtered = useMemo(() => (repairs.data ?? []).filter((repair) => {
     if (priority !== "ALL" && repair.priority !== priority) return false
+    if (search.trim() && !`#${repair.id} ${repair.category} ${repair.description}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) return false
     if (exactStatus) return repair.status === exactStatus
     if (view === "processing") return processingStatuses.has(repair.status)
     if (view === "completed") return completedStatuses.has(repair.status)
     return true
-  }), [exactStatus, priority, repairs.data, view])
+  }), [exactStatus, priority, repairs.data, search, view])
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+  useEffect(() => { setPage(1) }, [exactStatus, priority, search, view])
 
   if (!user) return null
   const title = user.role === "MAINTENANCE" ? "我的工单" : "报修工单"
@@ -54,22 +65,24 @@ export function RepairsPage() {
   }
 
   return (
-    <section className="page-section">
+    <section className="page-section repair-management-page">
       <PageHeader title={title} description="选择工单查看详情与下一步操作。" action={user.role === "OWNER" ? <Button onClick={() => setCreateOpen(true)}><Plus aria-hidden="true" size={18}/>提交报修</Button> : undefined}/>
-      <div className="list-toolbar">
+      <div className="list-toolbar repair-list-toolbar">
         <Tabs value={view} onValueChange={changeView}><TabsList aria-label="工单状态"><TabsTrigger value="all">全部</TabsTrigger><TabsTrigger value="processing">处理中</TabsTrigger><TabsTrigger value="completed">已完成</TabsTrigger></TabsList></Tabs>
+        <label className="repair-list-search"><Search size={16} aria-hidden="true"/><Input type="search" aria-label="搜索工单编号、类型或描述" placeholder="工单编号 / 类型 / 描述" value={search} onChange={(event) => setSearch(event.target.value)}/></label>
         <details className="filter-control"><summary><Filter aria-hidden="true" size={17}/>筛选</summary><label>优先级<select className="input" value={priority} onChange={(event) => setPriority(event.target.value)}><option value="ALL">全部</option><option value="NORMAL">普通</option><option value="URGENT">紧急</option></select></label></details>
       </div>
       {repairs.isPending ? <LoadingRows count={3}/> : repairs.isError ? <ErrorState message="工单加载失败" onRetry={() => void repairs.refetch()}/> : filtered.length ? (
-        <div className="sparse-list repair-list">{filtered.map((repair) => (
+        <div className="sparse-list repair-list">{pageRows.map((repair) => (
           <button className="sparse-row repair-row" type="button" key={repair.id} aria-label={`查看报修：${repair.category}`} onClick={() => setSelectedId(repair.id)}>
-            <span className="row-copy"><strong>{repair.category}</strong><small>#{repair.id} · {formatDate(repair.createdAt)}</small></span>
+            <span className="row-copy"><strong>{repair.category}</strong><small className="repair-row-description" title={repair.description}>{repair.description}</small><small>#{repair.id} · {formatDate(repair.createdAt)}</small></span>
             <span className="row-tags"><StatusBadge status={repair.status}/>{repair.priority === "URGENT" ? <span className="priority-urgent">紧急</span> : <span className="row-assignee">普通</span>}{repair.assigneeId ? <span className="row-assignee">维修 #{repair.assigneeId}</span> : null}</span>
           </button>
         ))}</div>
       ) : (
         <EmptyState title={repairs.data?.length ? "没有符合筛选的工单" : "暂无工单"} detail={user.role === "OWNER" ? "需要维修时可提交新报修" : undefined}/>
       )}
+      {!repairs.isPending && !repairs.isError ? <nav className="repair-list-pagination" aria-label="工单分页"><span>共 {filtered.length} 条工单</span><div><Button variant="outline" size="icon" title="上一页" aria-label="上一页" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}><ChevronLeft size={18} aria-hidden="true"/></Button><span aria-live="polite">第 {currentPage} / {pageCount} 页</span><Button variant="outline" size="icon" title="下一页" aria-label="下一页" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}><ChevronRight size={18} aria-hidden="true"/></Button></div></nav> : null}
       {user.role === "OWNER" ? <RepairCreateDialog open={createOpen} onOpenChange={setCreateOpen}/> : null}
       <RepairDetailSheet repairId={selectedId} role={user.role} onOpenChange={(open) => { if (!open) setSelectedId(null) }}/>
     </section>
