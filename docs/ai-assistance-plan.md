@@ -1,30 +1,54 @@
-# AI assistance implementation
+# AI 辅助填写设计与实现说明
 
-Scope: add optional AI drafting to the existing repair and notice forms. No database writes, assignments, payments, or publishing are performed by the AI routes.
+更新日期：2026-09-07。本文描述最终交付版本的已实现设计。文件名保留用于兼容已有文档链接。
 
-## Contract
+## 功能职责
 
-- `POST /api/v1/ai/repair-draft`, OWNER only: `{description}` -> `{category, description, priority, missingInfo}`.
-- `POST /api/v1/ai/notice-draft`, PROPERTY only: `{title, content}` -> `{title, content, missingInfo}`.
-- Responses use the existing `{data, requestId}` envelope; failures use `{code, message, requestId}`.
-- Repair categories remain public facilities, water/electrical repair, doors/windows, and other problems (the existing Chinese enum values). Priority remains `NORMAL` or `URGENT`.
-- Suggestions are previews. Only the explicit apply action fills the existing form. Existing submit/publish commands remain necessary.
+AI 为业主报修与物业公告提供可编辑草稿。服务端 AI 路由只返回建议，业务记录仍由既有报修提交、公告创建和发布接口写入。系统提供本机离线模拟服务，也支持配置兼容模型服务。
 
-## Model connection
+## 接口契约
 
-Use a server-side, configurable chat-completions-compatible endpoint, model, API key, enable switch, and bounded timeout. A local compatible model is supported via configuration. Never send app JWTs, passwords, or database records to the model. Only the input text for the selected drafting action is sent. Never return or log provider keys or raw upstream error bodies.
+| 接口 | 角色 | 输入 | 输出 |
+|---|---|---|---|
+| `POST /api/v1/ai/repair-draft` | `OWNER` | `{description}` | `{category, description, priority, missingInfo}` |
+| `POST /api/v1/ai/notice-draft` | `PROPERTY` | `{title, content}` | `{title, content, missingInfo}` |
 
-Disabled/unconfigured AI returns a clear unavailable error; no simulated answer is represented as a live model result. Automated tests use controlled model HTTP responses and do not spend paid API credit.
+成功沿用 `{data, requestId}`，错误沿用 `{code, message, requestId}`。报修分类限定为“公共设施”“水电维修”“门窗维修”“其他问题”；优先级为 `NORMAL` 或 `URGENT`。服务端校验字段类型、长度和枚举。
 
-## Tasks
+## 模型适配
 
-1. Add bounded request/output schemas, role-protected routes, provider adapter, configuration example, and focused backend tests.
-2. Add compact AI actions and editable suggestion previews to both forms; preserve manual input on failure, stale response, close/reopen, or declined suggestion.
-3. Verify normal business flows, role denial, disabled service, invalid model output, provider failure/timeout, and explicit apply/no-auto-submit.
-4. Document configuration and privacy boundaries. Build and inspect the dialogs at tablet width. Live model acceptance remains pending until a provider is configured.
+服务端通过可配置的 `BASE_URL + /chat/completions` 调用服务，传入 `messages`、JSON 对象响应格式、温度及输出长度参数。解析 `choices[0].message.content` 中的 JSON，校验正常完成状态，拒绝工具调用、Markdown 代码围栏和不符合契约的结果。
 
-The first implementation adds no vector database, generic chat interface, voice stack, or new persistence tables.
+地址、模型、密钥、启用开关和总超时由 `backend/.env` 或环境变量控制。云端使用 HTTPS 及密钥；回环地址的本地兼容服务允许 HTTP 和空密钥。具体参数见 [AI 配置](ai-assistance.md)。
 
-## Verification status
+## 页面状态
 
-2026-09-06: Tasks 1-4 implemented locally. Backend 99 tests, frontend 51 tests, build/typecheck, and 3 browser flows passed. An independent review identified the distinction between HTTP inactivity and total request timeouts; the provider now has a total deadline and a slow-response regression test. Live cloud-model acceptance is pending provider configuration; AI remains disabled by default.
+1. 输入达到最小长度后才允许生成。
+2. 生成过程中显示加载状态，建议在独立预览区域展示。
+3. “采用建议”填入原表单；“不采用”保留人工输入。
+4. 修改原文后旧建议失效；关闭重开表单不复用旧建议。
+5. 生成失败时显示错误并保留输入，允许手动提交或重试。
+6. 采用后仍需提交报修，或创建公告草稿后明确发布。
+
+## 数据与服务约束
+
+- 只发送所选表单文字和固定任务指令，不自动发送 JWT、密码、用户身份或数据库记录。
+- 文字中由用户手动填写的个人信息仍会发送到配置的服务端。
+- 两项草稿接口校验登录和角色，不提供查询全库、支付、派单或发布工具。
+- 默认总超时 30 秒，每用户每分钟最多 8 次调用尝试；限流在单个后端进程内生效。
+- 不自动重试付费请求；对外错误不泄露模型密钥或原始上游响应。
+
+## 验收标准与记录
+
+| 场景 | 验收行为 |
+|---|---|
+| 正常生成 | 建议符合接口结构，采用前不改表单、不写业务记录 |
+| 权限错误 | 未登录或角色不符时拒绝 |
+| 服务关闭或未配置 | 返回 503，手动填写继续可用 |
+| 服务错误或非法输出 | 返回 502，保留输入 |
+| 超时 | 在总时限返回 504，关闭响应流 |
+| 超限 | 返回 429 |
+| 本地演示 | 启动器使用离线规则服务，讲解明确说明服务类型 |
+| 外部模型 | 按所配置服务另行记录生成质量、耗时及费用 |
+
+当前目录的自动化结果、离线服务检查及设备覆盖见 [测试报告](test-report.md)。外部模型效果取决于实际供应商配置，本次测试记录不包含真实云端调用结果。

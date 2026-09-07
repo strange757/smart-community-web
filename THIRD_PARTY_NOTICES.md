@@ -1,6 +1,8 @@
 # Third-Party Notices
 
-This file records the direct dependencies and assets relevant to the smart-community MVP. Exact JavaScript resolutions are recorded in `frontend/package-lock.json`; exact Python requirements are recorded in `backend/pyproject.toml`.
+Final delivery documentation, updated 2026-09-07.
+
+This file records the direct dependencies and assets relevant to the HeLin Smart Community final delivery. JavaScript resolutions are recorded in `frontend/package-lock.json`; declared Python requirements are recorded in `backend/pyproject.toml`. Transitive Python dependency versions are resolved during installation.
 
 ## Local shadcn-style components
 
@@ -8,7 +10,7 @@ The wrappers in `frontend/src/components/ui` were independently implemented for 
 
 ## MIT-licensed runtime dependencies
 
-| Package | Installed version | Retained copyright notice |
+| Package | Recorded version | Retained copyright notice |
 |---|---:|---|
 | FastAPI | 0.116.1 | Copyright 2018 Sebastián Ramírez |
 | Pydantic | 2.10.6 | Copyright 2017-present Pydantic Services Inc. and individual contributors |
@@ -54,6 +56,12 @@ MIT license text for the packages listed above:
 - Source: https://images.unsplash.com/photo-1494526585095-c41746248156
 - License: https://unsplash.com/license
 - Existing asset record: `frontend/public/ASSET_LICENSES.md`
+
+## HarmonyOS application template
+
+The `harmonyos` application was generated with Huawei DevEco CLI 1.3.1 using its Empty Ability template, then adapted to host the community web application on tablets. Generated ArkTS files retain the Huawei Device Co., Ltd. 2026 copyright and Apache-2.0 headers. The Apache-2.0 license text is provided in `harmonyos/LICENSE`.
+
+The generated application icons and resources are retained from the same template. HarmonyOS SDK components and emulator system images are development environment dependencies and are not redistributed in this repository.
 
 ## Design references not copied
 

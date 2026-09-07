@@ -1,106 +1,118 @@
-# 测试报告
+# 最终交付测试报告
 
-## 范围与环境
+复核日期：2026-09-07。测试对象为 `C:\Users\Lenovo\Desktop\harmonyos\smart_community\smart-community-web` 当前交付目录。以下结果来自本次重新运行，不沿用其他目录或历史版本的通过状态。
 
-- 日期：2026-09-04（Asia/Shanghai）
-- 系统：Microsoft Windows 11 家庭版中文版，10.0.26200，64 位
-- CPU：Intel Core i9-14900HX
-- Python 3.12.14；FastAPI 0.116.1；SQLAlchemy 2.0.43；Alembic 1.16.5；Uvicorn 0.35.0
-- Node.js 24.15.0；npm 11.12.1；Vite 7.3.6；Vitest 3.2.7；Playwright 1.62.1
-- 浏览器：Playwright Chromium，单 worker
+## 环境
 
-## TDD 证据
+| 项目 | 本次环境 |
+|---|---|
+| 系统 | Windows，PowerShell |
+| Python | 本项目虚拟环境，3.12.14 |
+| 服务端 | FastAPI 0.116.1、SQLAlchemy 2.0.43、Alembic 1.16.5、Uvicorn 0.35.0 |
+| Node.js / npm | 24.15.0 / 11.12.1 |
+| 前端工具 | Vite 7.3.6、Vitest 3.2.7、TypeScript 5.9.3 |
+| 浏览器测试 | Playwright 1.62.1、Chromium、单 worker |
+| 数据隔离 | pytest 临时库、E2E 独立库、启动器专用 `backend/delivery-demo.db` |
+| DevEco Studio | 26.0.0.821；HDC 3.2.0f |
 
-生产托管与迁移测试先于实现写入。初始命令：
+## 自动化结果
 
-```powershell
-Set-Location backend
-.\.venv\Scripts\python.exe -m pytest tests/test_production_hosting.py tests/test_migrations.py -q
-```
+除注明目录外，命令在工程根目录执行。
 
-RED 结果：`1 passed, 4 failed`。三个失败是 `create_app()` 尚无显式 `frontend_dist` 参数；迁移失败是 `backend/alembic.ini` 不存在。安全重置测试随后单独观察到 `2 failed`，原因是 `backend/run.py` 尚不存在。
-
-实现后的聚焦命令：
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests/test_production_hosting.py tests/test_migrations.py tests/test_release_runner.py -q
-```
-
-GREEN 结果：`8 passed`，无警告。覆盖显式静态托管、SPA 直达、构建产物、API 404、非 GET 405、缺失构建报错、Alembic 空库升级和单文件安全重置。自审时另观察到 `1 failed` 的保护测试，证明旧实现会把 `.txt` 当作数据库删除；扩展名白名单修复后该测试转绿。
-
-完整 Vitest 首次纳入 E2E 文件时，41 个单元测试均通过，但套件因 Playwright API 被 Vitest 收集而退出非零；`vite.config.ts` 随后明确排除 `e2e/**`。最终 Vitest 与 Playwright 各自只收集所属测试。
-
-最终审查修复同样遵循 RED/GREEN：并发车位测试先得到两个 `201`；共享 Provider 角色切换测试先显示了上一角色的工单；SQLite 外键、社区复合约束与审计字段测试先失败；API 时间先缺少 UTC 后缀，UTC 环境中的中国日期先显示为 9 月 3 日；报修详情切换/重开测试先保留旧错误和输入；认证数据库故障先被误报为 401；E2E 启动拒绝测试先遗留数据库及 `-shm`/`-wal`。对应聚焦 GREEN 为后端 `10 passed`、前端 `13 passed`，E2E 包装器清理脚本退出码 0。
-
-## 完整自动化结果
-
-从仓库根目录或注明目录执行：
-
-| 检查 | 命令 | 结果 |
+| 检查 | 命令 | 本次结果 |
 |---|---|---|
-| 后端 | `backend\.venv\Scripts\python.exe -m pytest backend\tests` | `48 passed in 87.64s` |
-| 前端单元 | `npm --prefix frontend test` | `10 files passed, 46 tests passed` |
-| 类型 | `npm --prefix frontend run typecheck` | 退出码 0，无 TypeScript 诊断 |
-| 构建 | `npm --prefix frontend run build` | 退出码 0，1830 modules transformed，无 >500 kB 告警 |
-| E2E 包装器 | `npm --prefix frontend run test:e2e-runner` | 启动拒绝路径退出码 0；数据库与两个 sidecar 均被清理 |
-| Alembic | 对全新临时 SQLite 库执行 `upgrade head` 后执行 `check` | `No new upgrade operations detected.` |
-| E2E | `npm --prefix frontend run e2e` | `1 passed (23.0s)`，Chromium 单 worker；数据库及 sidecar 清理检查均为 `False` |
+| 后端全量 | 在 `backend` 执行 `.\.venv\Scripts\python.exe -m pytest tests` | 99 passed，128.68 秒 |
+| 前端全量 | `npm --prefix frontend test` | 11 个文件、51 passed，2.19 秒 |
+| 类型检查 | `npm --prefix frontend run typecheck` | 退出码 0，无类型诊断 |
+| 构建 | `npm --prefix frontend run build` | 退出码 0；1831 个模块，最大 JS 文件 286.25 kB |
+| E2E 清理工具 | `npm --prefix frontend run test:e2e-runner` | 退出码 0 |
+| 浏览器业务流程 | `npm --prefix frontend run e2e` | 3 passed，25.9 秒 |
+| 数据库迁移 | 后端全量中的空库迁移及模型一致性测试 | 通过，含 Alembic `check` |
+| 演示启动器 | `demo/run_demo.py --database .\backend\delivery-demo.db` | 页面和离线 AI 服务成功启动 |
+| 运行检查 | `.\backend\.venv\Scripts\python.exe demo\check_demo.py --check-ai` | 16 项检查成功，0 项失败 |
 
-构建前主 JavaScript 为 `537.22 kB`（gzip `168.68 kB`），触发 Vite 告警。启用按 React、UI、Query 和其余依赖划分的 `manualChunks` 后，最大文件为 `react-vendor 286.25 kB`（gzip `91.93 kB`）；最终其余 JavaScript 为 `98.19/31.38`、`64.30/21.42`、`53.28/14.13`、`35.30/10.40 kB`（原始/gzip）。
+构建输出为 `frontend/dist`；最大 JS 文件 gzip 后 91.93 kB，没有超过 500 kB 的构建警告。浏览器运行日志有终端色彩环境变量提示，不影响退出状态或业务结果。
 
-## E2E 流程
+## 归档兼容处理
 
-E2E 每次用 `--reset` 创建 `frontend/test-results/e2e/community-e2e.db`，由 `backend/run.py` 在 FastAPI 上托管真实 `frontend/dist`，结束后只清理该 SQLite 文件及可能的 `-shm/-wal` sidecar。
+交付归档包含 `._` 开头的 macOS 元数据。首次执行时，Vitest 通过 51 项真实测试，但误收集 11 份元数据导致套件失败；Playwright 收集也因两份元数据报错。两处测试配置增加 `**/._*` 排除规则后重新验证通过。
 
-单一串行流程验证：
+后端首次为 98 passed、1 failed，原因是 Alembic 将迁移目录的 `._20260904_0001_initial_schema.py` 当作 Python 迁移加载。该文件核对为 AppleDouble 元数据，已移至电脑临时备份目录；真正的 `20260904_0001_initial_schema.py` 保留。再次运行后端全量、迁移和浏览器流程均通过。
 
-1. 直接加载 `/app/home` 返回生产 SPA，登录图片自然宽度非零。
-2. 业主创建水电报修；物业指派陈师傅；维修开始并完成；业主确认并五星评价。
-3. 真实服务器先完成缴费，但浏览器收到一次模拟 503；UI 用同一幂等键重试并显示同一个服务端 `DEMO-...` 参考号。
-4. 业主预约 `A-01 / 09:00-10:00`，再次提交同槽位收到真实 409；日期、车位、选中时段保留，然后取消活动预约。
-5. 物业创建并发布公告，业主随后看到标题、正文和“已发布”状态。
-6. 除预期 503/409 网络诊断外无控制台错误，且无页面运行时错误。
+重新归档时，迁移目录应只包含真正的迁移源码，避免再次混入 `._` 文件。本次调整限于测试文件排除和移出一份归档元数据，没有修改业务逻辑。
 
-## 视觉验证
+## 业务覆盖
 
-| 视口 | 截图 | 结果 |
+| 领域 | 验证内容 |
+|---|---|
+| 登录权限 | 三角色、过期会话、角色导航、退出清理、跨社区隔离 |
+| 数据库 | 11 张表、字段和约束、复合外键、审计时间、空库升级 |
+| 报修 | 创建、指派、开始、完成、确认、评价、取消及非法状态拒绝 |
+| 缴费 | 金额由服务端确定、幂等键、SQLite 并发与响应丢失后重试 |
+| 预约 | 日期和时段、实际重叠冲突、相邻时段、并发冲突与取消 |
+| 公告 | 草稿、发布、撤回、各角色可见性 |
+| 页面 | SPA 路由回退、静态图片、统一 API 错误、数据和表单状态 |
+| AI | 角色、协议、严格输出、总超时、限流、错误保护及无业务写入 |
+
+## 浏览器流程
+
+E2E 使用 FastAPI 托管的真实前端构建，端口 8001，独立 SQLite 数据库。结束后已检查 `frontend/test-results/e2e`，测试库及其附属文件没有残留。
+
+三项流程包括：
+
+1. AI 关闭时业主仍可手动填写报修；受控建议需人工采用，核对不同宽度的弹窗。
+2. 物业查看和采用受控公告建议，生成建议不自动发布。
+3. 三角色报修闭环、缴费重试、真实停车冲突与取消、公告发布后业主可见，以及平板宽度布局。
+
+缴费测试让服务器先完成操作，再模拟一次响应异常，验证 UI 重试仍使用同一幂等键并取得相同支付参考号。预约测试向真实后端重复提交相同槽位，收到 409 后检查日期、车位和时段保留。
+
+## 截图与布局
+
+| 视口 | 图片 | 用途 |
 |---|---|---|
-| 800 x 768 | `docs/screenshots/owner-home-800x768.png` | 72px 紧凑侧栏；服务、事项、公告及顶部控制完整 |
-| 1024 x 768 | `docs/screenshots/owner-home-1024x768.png` | 三个服务并排；详情在首屏；无横向溢出 |
-| 1280 x 800 | `docs/screenshots/property-operations-1280x800.png` | 三项指标、待处理工单和最新公告完整 |
-| 1366 x 768 | `docs/screenshots/property-operations-1366x768.png` | 宽屏列宽稳定；无拉伸、遮挡或裁切 |
+| 800 x 768 | [业主首页](screenshots/owner-home-800x768.png) | 紧凑侧栏、首页布局 |
+| 1024 x 768 | [业主首页](screenshots/owner-home-1024x768.png) | 标准平板宽度 |
+| 1280 x 800 | [物业运营首页](screenshots/property-operations-1280x800.png) | 运营指标与列表 |
+| 1366 x 768 | [物业运营首页](screenshots/property-operations-1366x768.png) | 较宽屏幕 |
 
-Playwright 在四个视口逐元素检查横向边界，`document.scrollWidth <= innerWidth`。人工以原始分辨率检查四张 PNG：没有空白资源、横向滚动、内容重叠、文字裁切、过量首屏文字或不可见控制；768px 高度内关键详情与操作保持可见。截图分别有 40、47、42、47 个按 16px 网格抽样的不同像素颜色，排除空白渲染；文件大小为 31–38 kB。
+本次 E2E 重新生成上述四张图，并通过横向边界断言。AI 弹窗另覆盖 390、800、1024 x 768，图片位于 `frontend/test-results/playwright-artifacts`。图中含 E2E 测试公告，作为测试证据使用，不代表初始种子数据或平板设备截图。
 
-## 已知非阻断风险
+## 离线 AI 检查
 
-- 自动化使用桌面 Chromium 的目标视口，未覆盖所有 HarmonyOS 浏览器版本、系统字体和实体触摸输入差异；交付前仍建议在目标平板做一次同 Wi-Fi 冒烟。
-- 默认 JWT 密钥、HTTP 和 SQLite 只适合演示。公网部署必须更换密钥、启用 HTTPS，并采用更强数据库和备份策略。
-- 模拟缴费不接触真实资金，也未实现支付网关回调、退款或对账。
-- 首个 Alembic 迁移在正式标签前补充了审计字段和社区复合外键；运行过旧预发布构建的演示数据库必须使用 `--reset` 重建。
-- PostgreSQL 等数据库走车位父行 `FOR UPDATE` 锁定路径；本 MVP 的自动化环境只对 SQLite `BEGIN IMMEDIATE` 路径做了真实并发验证。
+演示启动器在电脑 8000 托管社区应用，在回环地址 9100 运行离线规则服务。运行检查验证三角色登录及各自数据接口，并成功取得报修整理和公告草稿。AI 接口只返回建议，没有创建业务记录。
 
-## 参考与资产核对
+自动化中的受控 HTTP 响应、浏览器接口测试数据和实际离线服务分开说明。它们都不代表真实云端模型的生成质量；本次没有记录外部模型的耗时、费用或内容效果。
 
-- 后端领域参考 MicroCommunity 提交 `45102fc13900aad6d117b00a4feeeafe9c3f5fee`。
-- shadcn/ui 组件模式按 MIT 边界使用；Cal 只提供预约概念；Dub/Plane 只做设计参考，未复制 AGPL 或商业代码。
-- 登录图片来源和 Unsplash 许可记录在 `frontend/public/ASSET_LICENSES.md`。
-- 根目录 `THIRD_PARTY_NOTICES.md` 记录本地独立实现的 shadcn 风格组件边界、直接依赖许可与 Unsplash 资产通知。
+## HarmonyOS 设备验证范围
 
-## 2026-09-06：可选 AI 辅助填写
+2026-09-07 已通过 Device Manager 下载并启动 MatePad Pro 13 的 HarmonyOS 7.0.0 / API 26 镜像，设备标识为 `127.0.0.1:5555`。新增的 `harmonyos` 工程通过 DevEco CLI 构建，生成 Tablet 类型的调试 HAP，包名为 `com.helin.community`。
 
-新增业主报修整理和物业公告拟稿，两项操作只返回建议，不创建工单或公告。既有业务测试保留。
+HDC 反向映射返回 `Forwardport result:OK`，HAP 安装返回 `install bundle successfully`，启动返回 `start ability successfully`。实际设备界面已验证登录图片、业主演示账号填入、登录后首页和报修列表显示。留证见 [平板业主首页截图](screenshots/harmonyos-tablet-owner-home.png)，原图为 2880 x 1920。
 
-| 检查 | 命令 | 结果 |
-|---|---|---|
-| 后端全量 | 在 backend 执行 `.venv\Scripts\python.exe -m pytest tests` | 99 passed，94.67 秒 |
-| 前端全量 | `npm --prefix frontend test` | 11 个测试文件，51 passed |
-| 类型检查/构建 | `npm --prefix frontend run typecheck` / `npm --prefix frontend run build` | 通过；最大 chunk 286.25 kB |
-| 浏览器流程 | `npm --prefix frontend run e2e` | 3 passed；包括原有三角色业务闭环及两项 AI 页面检查 |
-| 本地服务 | GET `/login`，业主登录，POST `/api/v1/ai/repair-draft` | 页面 200，角色 OWNER；未配置 AI 返回 503 / `AI_NOT_CONFIGURED` |
+本次设备检查属于安装和主要页面冒烟验证，没有在模拟器中重演三角色全部业务闭环。完整业务闭环的通过结果来自前述 Chromium E2E；设备完整验收可继续按 [演示流程](demo-script.md) 执行。
 
-AI 后端测试只使用受控 HTTP 响应，覆盖角色权限、输入校验、严格 JSON 输出、密钥和上游错误不泄漏、请求内容不自动包含用户身份、每用户限流、配置路径和不写入业务表。总超时回归让响应持续分段抵达，验证仍在总时限到达时返回 504 并关闭响应流。
+前端使用 `crypto.randomUUID()`，普通局域网 HTTP 可能缺少所需安全上下文。本次演示方法优先采用回环地址映射，无线浏览器使用有效 HTTPS；没有把普通局域网 HTTP 记为完整业务通过。
 
-前端测试覆盖建议预览和人工采用、失败后保留手动输入及重试、编辑原文后丢弃延迟结果、关闭重开不保留旧建议。Playwright 验证 1024/800/390 x 768 的报修建议弹窗及 1024 x 768 的公告拟稿弹窗；人工查看截图确认内容可滚动、底部提交按钮可见、没有横向溢出。测试截图位于忽略目录 `frontend/test-results/playwright-artifacts/`。
+## 交付边界
 
-成功生成的前端/浏览器测试使用明确标记的接口测试数据，不能代表真实模型质量。尚未配置云端服务地址、模型与 API Key，真实生成、延迟、费用及实体 HarmonyOS 设备验收待接入后完成。配置说明见 [ai-assistance.md](ai-assistance.md)。
+- 模拟缴费不连接真实资金，不包含支付网关回调、对账和退款。
+- 实际并发测试针对 SQLite，其他数据库部署路径不在本次通过结果内。
+- 默认账号和本地运行配置用于本次验收；共享网络部署按 [部署指南](deployment.md) 配置账号、密钥、HTTPS 和备份。
+- 本次已核对文档路径、演示按钮、日期选择、端口映射方向和 AI 服务类型。依赖及图片授权见 [第三方声明](../THIRD_PARTY_NOTICES.md)。
+
+## GitHub 上传前复核
+
+2026-09-07 从 GitHub `main` 最新提交建立独立发布副本，同步当前交付源码后重新验证。测试数据与正在运行的演示数据库分离，未重置用户正在使用的数据。
+
+| 检查 | 发布副本结果 |
+|---|---|
+| 后端全量 | 99 passed，152.61 秒 |
+| 前端全量 | 11 个文件、51 passed，35.44 秒 |
+| 网页构建与类型检查 | `npm --prefix frontend run build` 通过，包含 TypeScript 检查 |
+| E2E 清理工具 | 通过 |
+| 浏览器流程 | 3 passed，19.2 秒 |
+| HarmonyOS 构建 | DevEco CLI 构建通过，生成 API 26 Tablet 调试 HAP |
+| 文档 | 12 份 Markdown 的本地链接、代码块和交付版本措辞检查通过 |
+| 上传文件 | 171 个源码、文档和素材文件；不含依赖、运行数据库、凭据、签名私钥或编译产物 |
+
+发布副本复用了电脑已安装的 Python 测试依赖，确认实际导入的是发布副本的后端代码。前端依赖按锁文件重新安装。平板 HAP 由该副本重新构建，设备内页面检查的截图来自本节之前记录的同日运行。

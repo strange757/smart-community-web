@@ -10,6 +10,7 @@ const database = resolve(frontendRoot, "test-results/e2e/community-e2e.db")
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: "**/._*",
   outputDir: "./test-results/playwright-artifacts",
   fullyParallel: false,
   workers: 1,
